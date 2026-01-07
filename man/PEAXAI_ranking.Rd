@@ -9,6 +9,7 @@ PEAXAI_ranking(
   x,
   y,
   final_model,
+  calibration_model = NULL,
   efficiency_thresholds,
   targets = NULL,
   rank_basis
@@ -27,6 +28,11 @@ Supported types are:
 \item \code{"train"}: an object fitted with \pkg{caret}.
 \item \code{"glm"}: a binomial logistic regression model.
 }}
+
+\item{calibration_model}{Optional probability-calibration model applied to the raw
+predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
+If provided, calibrated probabilities are used for ranking and threshold-based decisions.
+Set to \code{NULL} to use uncalibrated predictions.}
 
 \item{efficiency_thresholds}{Numeric vector defining one or more efficiency probability
 thresholds to determine the attainable frontier or peer set.}

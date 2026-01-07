@@ -9,7 +9,9 @@ PEAXAI_peer(
   x,
   y,
   final_model,
+  calibration_model = NULL,
   efficiency_thresholds,
+  targets,
   weighted = FALSE,
   relative_importance = NULL
 )
@@ -23,7 +25,14 @@ PEAXAI_peer(
 
 \item{final_model}{A fitted classification model used to estimate efficiency probabilities. Supported classes: \code{"train"} (from \pkg{caret}) or \code{"glm"} (binomial).}
 
+\item{calibration_model}{Optional probability-calibration model applied to the raw
+predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
+If provided, calibrated probabilities are used for ranking and threshold-based decisions.
+Set to \code{NULL} to use uncalibrated predictions.}
+
 \item{efficiency_thresholds}{Numeric vector indicating the minimum probability values required to consider a DMU as efficient.}
+
+\item{targets}{A named list containing, for each efficiency threshold, the corresponding}
 
 \item{weighted}{Logical. If \code{TRUE}, peers are selected using weighted Euclidean distances based on variable importance. If \code{FALSE} (default), unweighted distances are used.}
 
@@ -99,7 +108,7 @@ When \code{weighted = TRUE}, variable weights (e.g., derived from feature import
   n_expand = 0.5, n_grid = 50, max_y = 2, min_x = 1)
 
   peers <- PEAXAI_peer(data = data, x = x, y = y, final_model = final_model,
-  efficiency_thresholds = efficiency_thresholds, weighted = FALSE)
+  efficiency_thresholds = efficiency_thresholds, targets = targets, weighted = FALSE)
 }
 
 }

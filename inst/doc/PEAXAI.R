@@ -33,7 +33,7 @@ y <- c(5)
 RTS <- "vrs"
 
 ## -----------------------------------------------------------------------------
-imbalance_rate <- seq(0.2, 0.4, 0.05) 
+imbalance_rate <- seq(0.05, 0.4, 0.05) 
 
 ## -----------------------------------------------------------------------------
 methods <- list(
@@ -61,7 +61,7 @@ trControl <- list(
 )
 
 ## -----------------------------------------------------------------------------
-metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
+metric_priority <- c("Balanced_Accuracy", "Precision")
 
 ## -----------------------------------------------------------------------------
 hold_out <- NULL
@@ -79,6 +79,7 @@ models <- PEAXAI_fitting(
   methods = methods,
   trControl = trControl,
   metric_priority = metric_priority,
+  calibration_method = NULL,
   hold_out = hold_out,
   verbose = TRUE,
   seed = seed
@@ -92,11 +93,8 @@ models$performance_train
 
 ## -----------------------------------------------------------------------------
 importance_method <- list(
-  name = "SA",
-  method = "1D-SA",
-  measures = "AAD", 
-  levels = 7,
-  baseline = "mean"
+    name = "SHAP",
+    nsim = 200
 )
 
 ## -----------------------------------------------------------------------------
@@ -184,6 +182,7 @@ peers <- PEAXAI_peer(
   x = x,
   y = y,
   final_model = models[["best_model_fit"]][["nnet"]],
+  targets = targets,
   efficiency_thresholds = efficiency_thresholds,
   weighted = FALSE,
   relative_importance = relative_importance

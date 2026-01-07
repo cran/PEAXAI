@@ -42,6 +42,7 @@ train_PEAXAI <- function (
     # predictions
     y_hat <- data$pred
     y_hat <- factor(y_hat, levels = levls)
+    if(levels(y_hat) != c("efficient", "not_efficient")) browser()
     y_hat_prob <- data$efficient
 
     # reference
@@ -124,25 +125,25 @@ train_PEAXAI <- function (
   }
 
   # trControl actualize
-  if (trControl[["method"]] == "cv") {
-    trControl <- trainControl(
-      method = trControl[["method"]],
-      number = trControl[["number"]],
-      summaryFunction = PEAXAIsummaryFunction,
-      classProbs = TRUE,
-      savePredictions = "all"
-    )
-  } else if (trControl[["method"]] == "repeatedcv") {
-    trControl <- trainControl(
-      method = trControl[["method"]],
-      number = trControl[["number"]],
-      repeats = trControl[["repeats"]],
-      summaryFunction = PEAXAIsummaryFunction,
-      classProbs = TRUE,
-      savePredictions = "all"
-    )
-  }
-  # trControl <- trainControl(method = "none", classProbs = TRUE)
+  # if (trControl[["method"]] == "cv") {
+  #   trControl <- trainControl(
+  #     method = trControl[["method"]],
+  #     number = trControl[["number"]],
+  #     summaryFunction = PEAXAIsummaryFunction,
+  #     classProbs = TRUE,
+  #     savePredictions = "all"
+  #   )
+  # } else if (trControl[["method"]] == "repeatedcv") {
+  #   trControl <- trainControl(
+  #     method = trControl[["method"]],
+  #     number = trControl[["number"]],
+  #     repeats = trControl[["repeats"]],
+  #     summaryFunction = PEAXAIsummaryFunction,
+  #     classProbs = TRUE,
+  #     savePredictions = "all"
+  #   )
+  # }
+  trControl <- trainControl(method = "none", classProbs = TRUE)
 
   # ----------------------------------------------------------------------------
   # Neural Network -------------------------------------------------------------
@@ -158,7 +159,7 @@ train_PEAXAI <- function (
       preProcess = parameters[["preProcess"]],
       tuneGrid = parameters[["tuneGrid"]],
       trControl = trControl,
-      metric = metric_priority[1],
+      metric = "Accuracy",
 
       # nnet (no fine-tuning)
       skip = parameters[["skip"]],
@@ -209,15 +210,21 @@ train_PEAXAI <- function (
 
   } else if (method == "glm") {
 
-    if (parameters[["weights"]][1] == "dinamic") {
-      w0 <- nrow(data) / (2 * length(which(data$class_efficiency == "not_efficient")))
-      w1 <- nrow(data) / (2 * length(which(data$class_efficiency == "efficient")))
-    } else if (is.data.frame(parameters[["weights"]])) {
-      w0 <- parameters[["weights"]][["w0"]]
-      w1 <- parameters[["weights"]][["w1"]]
-    } else {
+    if (is.null(parameters[["weights"]])) {
+
       w0 <- 1
       w1 <- 1
+
+    } else {
+
+      if (parameters[["weights"]][1] == "dinamic") {
+        w0 <- nrow(data) / (2 * length(which(data$class_efficiency == "not_efficient")))
+        w1 <- nrow(data) / (2 * length(which(data$class_efficiency == "efficient")))
+      } else if (is.data.frame(parameters[["weights"]])) {
+        w0 <- parameters[["weights"]][["w0"]]
+        w1 <- parameters[["weights"]][["w1"]]
+      }
+
     }
 
     model_fit <- train(

@@ -482,7 +482,7 @@ accurately. Optionally, if the observed imbalance still falls short of
 the target ratio, we also generate near-frontier inefficient synthetic
 units derived from the frontier geometry to sharpen the separation
 between efficient and inefficient regions.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>imbalance_rate <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.05</span>) </span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>imbalance_rate <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="fl">0.05</span>, <span class="fl">0.4</span>, <span class="fl">0.05</span>) </span></code></pre></div>
 <p>Define machine learning methods and their tuning parameters. Here we
 configure a neural network (nnet) with a grid of hyperparameters</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>methods <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
@@ -510,7 +510,7 @@ cross-validation)</p>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>)</span></code></pre></div>
 <p>Classification metrics to optimize during training (priority order in
 case of ties)</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>metric_priority <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Balanced_Accuracy&quot;</span>, <span class="st">&quot;ROC_AUC&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>metric_priority <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;Balanced_Accuracy&quot;</span>, <span class="st">&quot;Precision&quot;</span>)</span></code></pre></div>
 <p>Define hold-out sample to evaluate model performance on unseen data.
 These samples are excluded from the cross-validation and hyperparameter
 tuning process. By default, is <code>NULL</code>.</p>
@@ -539,59 +539,130 @@ metrics.</li>
 <span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a>  <span class="at">methods =</span> methods,</span>
 <span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a>  <span class="at">trControl =</span> trControl,</span>
 <span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a>  <span class="at">metric_priority =</span> metric_priority,</span>
-<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="at">hold_out =</span> hold_out,</span>
-<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  <span class="at">seed =</span> seed</span>
-<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>)</span>
-<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 14 )&quot;</span></span>
-<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 14 )&quot;</span></span>
-<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 14 )&quot;</span></span>
-<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 14 )&quot;</span></span>
-<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 14 )&quot;</span></span>
-<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 14 )&quot;</span></span>
-<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 14 )&quot;</span></span>
-<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 14 )&quot;</span></span>
-<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 14 )&quot;</span></span>
-<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 14 )&quot;</span></span>
-<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 14 )&quot;</span></span>
-<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 14 )&quot;</span></span>
-<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 13 DMUs (step 13 of 14 )&quot;</span></span>
-<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 14 DMUs (step 14 of 14 )&quot;</span></span></code></pre></div>
+<span id="cb12-10"><a href="#cb12-10" tabindex="-1"></a>  <span class="at">calibration_method =</span> <span class="cn">NULL</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" tabindex="-1"></a>  <span class="at">hold_out =</span> hold_out,</span>
+<span id="cb12-12"><a href="#cb12-12" tabindex="-1"></a>  <span class="at">verbose =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" tabindex="-1"></a>  <span class="at">seed =</span> seed</span>
+<span id="cb12-14"><a href="#cb12-14" tabindex="-1"></a>)</span>
+<span id="cb12-15"><a href="#cb12-15" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 14 )&quot;</span></span>
+<span id="cb12-16"><a href="#cb12-16" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 14 )&quot;</span></span>
+<span id="cb12-17"><a href="#cb12-17" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 14 )&quot;</span></span>
+<span id="cb12-18"><a href="#cb12-18" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 14 )&quot;</span></span>
+<span id="cb12-19"><a href="#cb12-19" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 14 )&quot;</span></span>
+<span id="cb12-20"><a href="#cb12-20" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 14 )&quot;</span></span>
+<span id="cb12-21"><a href="#cb12-21" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 14 )&quot;</span></span>
+<span id="cb12-22"><a href="#cb12-22" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 14 )&quot;</span></span>
+<span id="cb12-23"><a href="#cb12-23" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 14 )&quot;</span></span>
+<span id="cb12-24"><a href="#cb12-24" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 14 )&quot;</span></span>
+<span id="cb12-25"><a href="#cb12-25" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 14 )&quot;</span></span>
+<span id="cb12-26"><a href="#cb12-26" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 14 )&quot;</span></span>
+<span id="cb12-27"><a href="#cb12-27" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 13 DMUs (step 13 of 14 )&quot;</span></span>
+<span id="cb12-28"><a href="#cb12-28" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 14 DMUs (step 14 of 14 )&quot;</span></span>
+<span id="cb12-29"><a href="#cb12-29" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 14 )&quot;</span></span>
+<span id="cb12-30"><a href="#cb12-30" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 14 )&quot;</span></span>
+<span id="cb12-31"><a href="#cb12-31" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 14 )&quot;</span></span>
+<span id="cb12-32"><a href="#cb12-32" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 14 )&quot;</span></span>
+<span id="cb12-33"><a href="#cb12-33" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 14 )&quot;</span></span>
+<span id="cb12-34"><a href="#cb12-34" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 14 )&quot;</span></span>
+<span id="cb12-35"><a href="#cb12-35" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 14 )&quot;</span></span>
+<span id="cb12-36"><a href="#cb12-36" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 14 )&quot;</span></span>
+<span id="cb12-37"><a href="#cb12-37" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 14 )&quot;</span></span>
+<span id="cb12-38"><a href="#cb12-38" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 14 )&quot;</span></span>
+<span id="cb12-39"><a href="#cb12-39" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 14 )&quot;</span></span>
+<span id="cb12-40"><a href="#cb12-40" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 14 )&quot;</span></span>
+<span id="cb12-41"><a href="#cb12-41" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 13 DMUs (step 13 of 14 )&quot;</span></span>
+<span id="cb12-42"><a href="#cb12-42" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 14 DMUs (step 14 of 14 )&quot;</span></span>
+<span id="cb12-43"><a href="#cb12-43" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 12 )&quot;</span></span>
+<span id="cb12-44"><a href="#cb12-44" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 12 )&quot;</span></span>
+<span id="cb12-45"><a href="#cb12-45" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 12 )&quot;</span></span>
+<span id="cb12-46"><a href="#cb12-46" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 12 )&quot;</span></span>
+<span id="cb12-47"><a href="#cb12-47" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 12 )&quot;</span></span>
+<span id="cb12-48"><a href="#cb12-48" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 12 )&quot;</span></span>
+<span id="cb12-49"><a href="#cb12-49" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 12 )&quot;</span></span>
+<span id="cb12-50"><a href="#cb12-50" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 12 )&quot;</span></span>
+<span id="cb12-51"><a href="#cb12-51" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 12 )&quot;</span></span>
+<span id="cb12-52"><a href="#cb12-52" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 12 )&quot;</span></span>
+<span id="cb12-53"><a href="#cb12-53" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 12 )&quot;</span></span>
+<span id="cb12-54"><a href="#cb12-54" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 12 )&quot;</span></span>
+<span id="cb12-55"><a href="#cb12-55" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 13 )&quot;</span></span>
+<span id="cb12-56"><a href="#cb12-56" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 13 )&quot;</span></span>
+<span id="cb12-57"><a href="#cb12-57" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 13 )&quot;</span></span>
+<span id="cb12-58"><a href="#cb12-58" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 13 )&quot;</span></span>
+<span id="cb12-59"><a href="#cb12-59" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 13 )&quot;</span></span>
+<span id="cb12-60"><a href="#cb12-60" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 13 )&quot;</span></span>
+<span id="cb12-61"><a href="#cb12-61" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 13 )&quot;</span></span>
+<span id="cb12-62"><a href="#cb12-62" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 13 )&quot;</span></span>
+<span id="cb12-63"><a href="#cb12-63" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 13 )&quot;</span></span>
+<span id="cb12-64"><a href="#cb12-64" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 13 )&quot;</span></span>
+<span id="cb12-65"><a href="#cb12-65" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 13 )&quot;</span></span>
+<span id="cb12-66"><a href="#cb12-66" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 13 )&quot;</span></span>
+<span id="cb12-67"><a href="#cb12-67" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 13 DMUs (step 13 of 13 )&quot;</span></span>
+<span id="cb12-68"><a href="#cb12-68" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 17 )&quot;</span></span>
+<span id="cb12-69"><a href="#cb12-69" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 17 )&quot;</span></span>
+<span id="cb12-70"><a href="#cb12-70" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 17 )&quot;</span></span>
+<span id="cb12-71"><a href="#cb12-71" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 17 )&quot;</span></span>
+<span id="cb12-72"><a href="#cb12-72" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 17 )&quot;</span></span>
+<span id="cb12-73"><a href="#cb12-73" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 17 )&quot;</span></span>
+<span id="cb12-74"><a href="#cb12-74" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 17 )&quot;</span></span>
+<span id="cb12-75"><a href="#cb12-75" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 17 )&quot;</span></span>
+<span id="cb12-76"><a href="#cb12-76" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 17 )&quot;</span></span>
+<span id="cb12-77"><a href="#cb12-77" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 17 )&quot;</span></span>
+<span id="cb12-78"><a href="#cb12-78" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 17 )&quot;</span></span>
+<span id="cb12-79"><a href="#cb12-79" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 17 )&quot;</span></span>
+<span id="cb12-80"><a href="#cb12-80" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 13 DMUs (step 13 of 17 )&quot;</span></span>
+<span id="cb12-81"><a href="#cb12-81" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 14 DMUs (step 14 of 17 )&quot;</span></span>
+<span id="cb12-82"><a href="#cb12-82" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 15 DMUs (step 15 of 17 )&quot;</span></span>
+<span id="cb12-83"><a href="#cb12-83" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 16 DMUs (step 16 of 17 )&quot;</span></span>
+<span id="cb12-84"><a href="#cb12-84" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 17 DMUs (step 17 of 17 )&quot;</span></span>
+<span id="cb12-85"><a href="#cb12-85" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 1 DMUs (step 1 of 12 )&quot;</span></span>
+<span id="cb12-86"><a href="#cb12-86" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 2 DMUs (step 2 of 12 )&quot;</span></span>
+<span id="cb12-87"><a href="#cb12-87" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 3 DMUs (step 3 of 12 )&quot;</span></span>
+<span id="cb12-88"><a href="#cb12-88" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 4 DMUs (step 4 of 12 )&quot;</span></span>
+<span id="cb12-89"><a href="#cb12-89" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 5 DMUs (step 5 of 12 )&quot;</span></span>
+<span id="cb12-90"><a href="#cb12-90" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 6 DMUs (step 6 of 12 )&quot;</span></span>
+<span id="cb12-91"><a href="#cb12-91" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 7 DMUs (step 7 of 12 )&quot;</span></span>
+<span id="cb12-92"><a href="#cb12-92" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 8 DMUs (step 8 of 12 )&quot;</span></span>
+<span id="cb12-93"><a href="#cb12-93" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 9 DMUs (step 9 of 12 )&quot;</span></span>
+<span id="cb12-94"><a href="#cb12-94" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 10 DMUs (step 10 of 12 )&quot;</span></span>
+<span id="cb12-95"><a href="#cb12-95" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 11 DMUs (step 11 of 12 )&quot;</span></span>
+<span id="cb12-96"><a href="#cb12-96" tabindex="-1"></a><span class="co">#&gt; [1] &quot;Computing maximal friends with 12 DMUs (step 12 of 12 )&quot;</span></span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --><img role="img" src="data:image/png;base64,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" /><!-- --></p>
 <pre><code>#&gt; $nnet
 #&gt; Neural Network 
 #&gt; 
-#&gt; 137 samples
+#&gt; 118 samples
 #&gt;   5 predictor
 #&gt;   2 classes: &#39;efficient&#39;, &#39;not_efficient&#39; 
 #&gt; 
 #&gt; Pre-processing: centered (5), scaled (5) 
 #&gt; Resampling: None</code></pre>
 <pre><code>#&gt; $nnet
-#&gt;   imbalance size decay Accuracy Kappa Recall Specificity Precision   F1
-#&gt; 6       0.4    1 1e-05      0.9   0.8   0.91         0.9      0.88 0.89
-#&gt;   Balanced_Accuracy G_mean ROC_AUC PR_AUC Cross_Entropy Cross_Entropy_Efficient
-#&gt; 6              0.91    0.9    0.95    0.4          1.15                     2.2
-#&gt;   AccuracySD KappaSD RecallSD SpecificitySD PrecisionSD F1SD
-#&gt; 6       0.04    0.08     0.09           0.1         0.1 0.04
-#&gt;   Balanced_AccuracySD G_meanSD ROC_AUCSD PR_AUCSD Cross_EntropySD
-#&gt; 6                0.04     0.04      0.03     0.01               1
-#&gt;   Cross_Entropy_EfficientSD diff_imbalance
-#&gt; 6                      2.91         0.7546</code></pre>
+#&gt;     Imbalance_rate size decay Accuracy Kappa Recall Specificity Precision   F1
+#&gt; 121            0.3    1 1e-05      0.9   0.7   0.93        0.89      0.66 0.76
+#&gt;     Balanced_Accuracy G_mean ROC_AUC PR_AUC Cross_Entropy
+#&gt; 121              0.91   0.91    0.92   0.68          0.99
+#&gt;     Cross_Entropy_Efficient_class Cross_Entropy_not_Efficient_class AccuracySD
+#&gt; 121                           2.4                              0.74       0.08
+#&gt;     KappaSD RecallSD SpecificitySD PrecisionSD F1SD Balanced_AccuracySD
+#&gt; 121    0.22     0.15          0.09        0.23 0.18                0.09
+#&gt;     G_meanSD ROC_AUCSD PR_AUCSD Cross_EntropySD Cross_Entropy_Efficient_classSD
+#&gt; 121     0.09       0.1     0.04            1.26                             5.1
+#&gt;     Cross_Entropy_not_Efficient_classSD diff_imbalance
+#&gt; 121                                0.73         0.8546</code></pre>
 </div>
 <div id="xai-method-for-global-importance" class="section level2">
 <h2>XAI method for global importance</h2>
-<p>This example uses the SA (Sensitivity Analysis) method from the
-rminer package—specifically the 1D perturbation scheme with the AAD
-measure—to compute global relative importance with
-<code>PEAXAI_global_importance.</code> For alternative XAI methods and
+<p>This example uses SHAP (SHapley Additive exPlanations) computed with
+the fastshap package to estimate global feature importance with
+<code>PEAXAI_global_importance</code>. We approximate Shapley values via
+Monte Carlo sampling (<code>nsim</code>) and obtain a global importance
+score by aggregating absolute SHAP values across observations (and then
+normalizing to relative importance). For alternative XAI methods and
 options, see the package documentation.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a>importance_method <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>  <span class="at">name =</span> <span class="st">&quot;SA&quot;</span>,</span>
-<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">&quot;1D-SA&quot;</span>,</span>
-<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>  <span class="at">measures =</span> <span class="st">&quot;AAD&quot;</span>, </span>
-<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a>  <span class="at">levels =</span> <span class="dv">7</span>,</span>
-<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a>  <span class="at">baseline =</span> <span class="st">&quot;mean&quot;</span></span>
-<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">&quot;SHAP&quot;</span>,</span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a>    <span class="at">nsim =</span> <span class="dv">200</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="apply-xai-method-on-the-model-fine-tuned." class="section level2">
 <h2>Apply XAI method on the model fine-tuned.</h2>
@@ -614,8 +685,10 @@ the underlying problem as observed in practice.</p>
 <span id="cb16-7"><a href="#cb16-7" tabindex="-1"></a>  <span class="at">target =</span> <span class="st">&quot;train&quot;</span>,</span>
 <span id="cb16-8"><a href="#cb16-8" tabindex="-1"></a>  <span class="at">importance_method =</span> importance_method</span>
 <span id="cb16-9"><a href="#cb16-9" tabindex="-1"></a>)</span></code></pre></div>
-<pre><code>#&gt;   total_assets  employees fixed_assets personnel_expenses operating_income
-#&gt; 1   0.07029074 0.03154095    0.5186401         0.02248952        0.3570387</code></pre>
+<pre><code>#&gt;            total_assets employees fixed_assets personnel_expenses
+#&gt; importance    0.1259843 0.1943872    0.1256861         0.09496279
+#&gt;            operating_income
+#&gt; importance        0.4589795</code></pre>
 </div>
 <div id="selected-efficiency-thresholds" class="section level2">
 <h2>Selected efficiency thresholds</h2>
@@ -678,28 +751,28 @@ output expansion and input contraction.</p>
 <span id="cb22-12"><a href="#cb22-12" tabindex="-1"></a>)</span></code></pre></div>
 <div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">head</span>(targets[[<span class="st">&quot;0.85&quot;</span>]][[<span class="st">&quot;counterfactual_dataset&quot;</span>]], <span class="dv">10</span>)</span>
 <span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="co">#&gt;    total_assets employees fixed_assets personnel_expenses operating_income</span></span>
-<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt; 1     258.53448   70.0000   84.1517800           16.70692         460.5779</span></span>
-<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co">#&gt; 2     184.97800  261.0000   21.7550000           19.92400         358.1300</span></span>
-<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt; 3     128.93344  354.0000    5.7553500           13.70937         356.9468</span></span>
-<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co">#&gt; 4      93.15078  943.6587    0.1433018           36.20645         379.2861</span></span>
-<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="co">#&gt; 5     136.80035 1039.8639   58.6211029           30.88775         394.9861</span></span>
-<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="co">#&gt; 6     150.82542  733.2535   50.9999216           33.69010         335.3168</span></span>
-<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="co">#&gt; 7     107.03092  746.8836   19.1893752           23.93526         292.2379</span></span>
-<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt; 8     237.70296  599.5353   82.6488643           26.75902         352.2977</span></span>
-<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="co">#&gt; 9      53.38326  441.9395   24.9143425           19.24621         170.3884</span></span>
-<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="co">#&gt; 10     91.75983  700.0000   23.2029300           21.75058         167.7228</span></span></code></pre></div>
+<span id="cb23-3"><a href="#cb23-3" tabindex="-1"></a><span class="co">#&gt; 1     258.53448   70.0000     84.15178           16.70692         460.5779</span></span>
+<span id="cb23-4"><a href="#cb23-4" tabindex="-1"></a><span class="co">#&gt; 2     184.97800  261.0000     21.75500           19.92400         358.1300</span></span>
+<span id="cb23-5"><a href="#cb23-5" tabindex="-1"></a><span class="co">#&gt; 3     128.93344  354.0000      5.75535           13.70937         356.9468</span></span>
+<span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a><span class="co">#&gt; 4      99.03400  928.8030     28.62337           36.14623         322.6025</span></span>
+<span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a><span class="co">#&gt; 5     143.50947 1002.4934    100.14911           30.54698         322.0384</span></span>
+<span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a><span class="co">#&gt; 6     158.17604  735.8251     77.22218           33.89631         273.0876</span></span>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a><span class="co">#&gt; 7     108.17040  686.9396     49.98499           23.16355         258.0558</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a><span class="co">#&gt; 8     247.18561  557.9576    136.36460           26.42711         253.7645</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a><span class="co">#&gt; 9      53.41076  442.0000     24.98992           19.24766         170.1763</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a><span class="co">#&gt; 10     78.39246  598.8868     18.23653           20.09118         241.6773</span></span></code></pre></div>
 <div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">head</span>(targets[[<span class="st">&quot;0.85&quot;</span>]][[<span class="st">&quot;inefficiencies&quot;</span>]], <span class="dv">10</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="co">#&gt;          betas probability</span></span>
-<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="co">#&gt; 1  0.000000000   0.8500000</span></span>
-<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="co">#&gt; 2  0.000000000   0.8500000</span></span>
-<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="co">#&gt; 3  0.000000000   0.8500000</span></span>
-<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a><span class="co">#&gt; 4  3.836734694   0.4454719</span></span>
-<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; 5  5.695853768   0.8500000</span></span>
-<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a><span class="co">#&gt; 6  3.427734626   0.8500000</span></span>
-<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a><span class="co">#&gt; 7  4.431775876   0.8500000</span></span>
-<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a><span class="co">#&gt; 8  7.323870156   0.8500000</span></span>
-<span id="cb24-11"><a href="#cb24-11" tabindex="-1"></a><span class="co">#&gt; 9  0.009536843   0.8500000</span></span>
-<span id="cb24-12"><a href="#cb24-12" tabindex="-1"></a><span class="co">#&gt; 10 0.000000000   0.0000000</span></span></code></pre></div>
+<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a><span class="co">#&gt;        betas probability</span></span>
+<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="co">#&gt; 1  0.0000000        0.85</span></span>
+<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a><span class="co">#&gt; 2  0.0000000        0.85</span></span>
+<span id="cb24-5"><a href="#cb24-5" tabindex="-1"></a><span class="co">#&gt; 3  0.0000000        0.85</span></span>
+<span id="cb24-6"><a href="#cb24-6" tabindex="-1"></a><span class="co">#&gt; 4  1.0024831        0.85</span></span>
+<span id="cb24-7"><a href="#cb24-7" tabindex="-1"></a><span class="co">#&gt; 5  1.8799700        0.85</span></span>
+<span id="cb24-8"><a href="#cb24-8" tabindex="-1"></a><span class="co">#&gt; 6  0.4904079        0.85</span></span>
+<span id="cb24-9"><a href="#cb24-9" tabindex="-1"></a><span class="co">#&gt; 7  2.2521908        0.85</span></span>
+<span id="cb24-10"><a href="#cb24-10" tabindex="-1"></a><span class="co">#&gt; 8  2.2517318        0.85</span></span>
+<span id="cb24-11"><a href="#cb24-11" tabindex="-1"></a><span class="co">#&gt; 9  0.0000000        0.85</span></span>
+<span id="cb24-12"><a href="#cb24-12" tabindex="-1"></a><span class="co">#&gt; 10 2.5860233        0.85</span></span></code></pre></div>
 </div>
 <div id="efficiency-rankings" class="section level2">
 <h2>Efficiency rankings</h2>
@@ -731,105 +804,105 @@ implied by the model (<code>rank_basis</code> =
 <span id="cb26-3"><a href="#cb26-3" tabindex="-1"></a><span class="co">#&gt; 1        1   1                1.0000</span></span>
 <span id="cb26-4"><a href="#cb26-4" tabindex="-1"></a><span class="co">#&gt; 2        2   2                1.0000</span></span>
 <span id="cb26-5"><a href="#cb26-5" tabindex="-1"></a><span class="co">#&gt; 3        3   3                1.0000</span></span>
-<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a><span class="co">#&gt; 4        4  18                1.0000</span></span>
-<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a><span class="co">#&gt; 5        5  17                1.0000</span></span>
-<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="co">#&gt; 6        6  46                0.9851</span></span>
-<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a><span class="co">#&gt; 7        7  20                0.9692</span></span>
-<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a><span class="co">#&gt; 8        8  62                0.9672</span></span>
-<span id="cb26-11"><a href="#cb26-11" tabindex="-1"></a><span class="co">#&gt; 9        9   9                0.8137</span></span>
-<span id="cb26-12"><a href="#cb26-12" tabindex="-1"></a><span class="co">#&gt; 10      10  26                0.7744</span></span>
-<span id="cb26-13"><a href="#cb26-13" tabindex="-1"></a><span class="co">#&gt; 11      11  75                0.7154</span></span>
-<span id="cb26-14"><a href="#cb26-14" tabindex="-1"></a><span class="co">#&gt; 12      12  44                0.6793</span></span>
-<span id="cb26-15"><a href="#cb26-15" tabindex="-1"></a><span class="co">#&gt; 13      13  36                0.5447</span></span>
-<span id="cb26-16"><a href="#cb26-16" tabindex="-1"></a><span class="co">#&gt; 14      14  56                0.4485</span></span>
-<span id="cb26-17"><a href="#cb26-17" tabindex="-1"></a><span class="co">#&gt; 15      15  85                0.4290</span></span>
-<span id="cb26-18"><a href="#cb26-18" tabindex="-1"></a><span class="co">#&gt; 16      16  59                0.3992</span></span>
-<span id="cb26-19"><a href="#cb26-19" tabindex="-1"></a><span class="co">#&gt; 17      17  83                0.3484</span></span>
-<span id="cb26-20"><a href="#cb26-20" tabindex="-1"></a><span class="co">#&gt; 18      18  93                0.3065</span></span>
-<span id="cb26-21"><a href="#cb26-21" tabindex="-1"></a><span class="co">#&gt; 19      19  92                0.2851</span></span>
-<span id="cb26-22"><a href="#cb26-22" tabindex="-1"></a><span class="co">#&gt; 20      20  70                0.2690</span></span>
-<span id="cb26-23"><a href="#cb26-23" tabindex="-1"></a><span class="co">#&gt; 21      21  71                0.2387</span></span>
-<span id="cb26-24"><a href="#cb26-24" tabindex="-1"></a><span class="co">#&gt; 22      22  25                0.2078</span></span>
-<span id="cb26-25"><a href="#cb26-25" tabindex="-1"></a><span class="co">#&gt; 23      23  22                0.0965</span></span>
-<span id="cb26-26"><a href="#cb26-26" tabindex="-1"></a><span class="co">#&gt; 24      24  31                0.0961</span></span>
-<span id="cb26-27"><a href="#cb26-27" tabindex="-1"></a><span class="co">#&gt; 25      25  97                0.0942</span></span>
-<span id="cb26-28"><a href="#cb26-28" tabindex="-1"></a><span class="co">#&gt; 26      26  12                0.0862</span></span>
-<span id="cb26-29"><a href="#cb26-29" tabindex="-1"></a><span class="co">#&gt; 27      27  88                0.0560</span></span>
-<span id="cb26-30"><a href="#cb26-30" tabindex="-1"></a><span class="co">#&gt; 28      28  82                0.0553</span></span>
-<span id="cb26-31"><a href="#cb26-31" tabindex="-1"></a><span class="co">#&gt; 29      29  91                0.0436</span></span>
-<span id="cb26-32"><a href="#cb26-32" tabindex="-1"></a><span class="co">#&gt; 30      30  48                0.0370</span></span>
-<span id="cb26-33"><a href="#cb26-33" tabindex="-1"></a><span class="co">#&gt; 31      31  76                0.0339</span></span>
-<span id="cb26-34"><a href="#cb26-34" tabindex="-1"></a><span class="co">#&gt; 32      32  42                0.0279</span></span>
-<span id="cb26-35"><a href="#cb26-35" tabindex="-1"></a><span class="co">#&gt; 33      33  68                0.0249</span></span>
-<span id="cb26-36"><a href="#cb26-36" tabindex="-1"></a><span class="co">#&gt; 34      34  28                0.0166</span></span>
-<span id="cb26-37"><a href="#cb26-37" tabindex="-1"></a><span class="co">#&gt; 35      35  64                0.0140</span></span>
-<span id="cb26-38"><a href="#cb26-38" tabindex="-1"></a><span class="co">#&gt; 36      36  51                0.0106</span></span>
-<span id="cb26-39"><a href="#cb26-39" tabindex="-1"></a><span class="co">#&gt; 37      37  89                0.0099</span></span>
-<span id="cb26-40"><a href="#cb26-40" tabindex="-1"></a><span class="co">#&gt; 38      38  61                0.0084</span></span>
-<span id="cb26-41"><a href="#cb26-41" tabindex="-1"></a><span class="co">#&gt; 39      39  86                0.0081</span></span>
-<span id="cb26-42"><a href="#cb26-42" tabindex="-1"></a><span class="co">#&gt; 40      40  67                0.0048</span></span>
-<span id="cb26-43"><a href="#cb26-43" tabindex="-1"></a><span class="co">#&gt; 41      41  95                0.0044</span></span>
-<span id="cb26-44"><a href="#cb26-44" tabindex="-1"></a><span class="co">#&gt; 42      42  55                0.0041</span></span>
-<span id="cb26-45"><a href="#cb26-45" tabindex="-1"></a><span class="co">#&gt; 43      43  41                0.0037</span></span>
-<span id="cb26-46"><a href="#cb26-46" tabindex="-1"></a><span class="co">#&gt; 44      44  69                0.0015</span></span>
-<span id="cb26-47"><a href="#cb26-47" tabindex="-1"></a><span class="co">#&gt; 45      45  35                0.0014</span></span>
-<span id="cb26-48"><a href="#cb26-48" tabindex="-1"></a><span class="co">#&gt; 46      46  47                0.0011</span></span>
-<span id="cb26-49"><a href="#cb26-49" tabindex="-1"></a><span class="co">#&gt; 47      47  90                0.0006</span></span>
-<span id="cb26-50"><a href="#cb26-50" tabindex="-1"></a><span class="co">#&gt; 48      48  53                0.0002</span></span>
-<span id="cb26-51"><a href="#cb26-51" tabindex="-1"></a><span class="co">#&gt; 49      49  80                0.0001</span></span>
-<span id="cb26-52"><a href="#cb26-52" tabindex="-1"></a><span class="co">#&gt; 50      50  73                0.0000</span></span></code></pre></div>
+<span id="cb26-6"><a href="#cb26-6" tabindex="-1"></a><span class="co">#&gt; 4        4  17                1.0000</span></span>
+<span id="cb26-7"><a href="#cb26-7" tabindex="-1"></a><span class="co">#&gt; 5        5  20                1.0000</span></span>
+<span id="cb26-8"><a href="#cb26-8" tabindex="-1"></a><span class="co">#&gt; 6        6  46                1.0000</span></span>
+<span id="cb26-9"><a href="#cb26-9" tabindex="-1"></a><span class="co">#&gt; 7        7  62                0.9988</span></span>
+<span id="cb26-10"><a href="#cb26-10" tabindex="-1"></a><span class="co">#&gt; 8        8   9                0.9881</span></span>
+<span id="cb26-11"><a href="#cb26-11" tabindex="-1"></a><span class="co">#&gt; 9        9  92                0.9839</span></span>
+<span id="cb26-12"><a href="#cb26-12" tabindex="-1"></a><span class="co">#&gt; 10      10  18                0.9263</span></span>
+<span id="cb26-13"><a href="#cb26-13" tabindex="-1"></a><span class="co">#&gt; 11      11  75                0.8132</span></span>
+<span id="cb26-14"><a href="#cb26-14" tabindex="-1"></a><span class="co">#&gt; 12      12  36                0.8129</span></span>
+<span id="cb26-15"><a href="#cb26-15" tabindex="-1"></a><span class="co">#&gt; 13      13  56                0.7758</span></span>
+<span id="cb26-16"><a href="#cb26-16" tabindex="-1"></a><span class="co">#&gt; 14      14  26                0.7053</span></span>
+<span id="cb26-17"><a href="#cb26-17" tabindex="-1"></a><span class="co">#&gt; 15      15  93                0.6020</span></span>
+<span id="cb26-18"><a href="#cb26-18" tabindex="-1"></a><span class="co">#&gt; 16      16  85                0.3999</span></span>
+<span id="cb26-19"><a href="#cb26-19" tabindex="-1"></a><span class="co">#&gt; 17      17  25                0.3268</span></span>
+<span id="cb26-20"><a href="#cb26-20" tabindex="-1"></a><span class="co">#&gt; 18      18  97                0.2149</span></span>
+<span id="cb26-21"><a href="#cb26-21" tabindex="-1"></a><span class="co">#&gt; 19      19  91                0.1226</span></span>
+<span id="cb26-22"><a href="#cb26-22" tabindex="-1"></a><span class="co">#&gt; 20      20  71                0.0854</span></span>
+<span id="cb26-23"><a href="#cb26-23" tabindex="-1"></a><span class="co">#&gt; 21      21  31                0.0766</span></span>
+<span id="cb26-24"><a href="#cb26-24" tabindex="-1"></a><span class="co">#&gt; 22      22  44                0.0596</span></span>
+<span id="cb26-25"><a href="#cb26-25" tabindex="-1"></a><span class="co">#&gt; 23      23  95                0.0545</span></span>
+<span id="cb26-26"><a href="#cb26-26" tabindex="-1"></a><span class="co">#&gt; 24      24  42                0.0408</span></span>
+<span id="cb26-27"><a href="#cb26-27" tabindex="-1"></a><span class="co">#&gt; 25      25  28                0.0113</span></span>
+<span id="cb26-28"><a href="#cb26-28" tabindex="-1"></a><span class="co">#&gt; 26      26  89                0.0004</span></span>
+<span id="cb26-29"><a href="#cb26-29" tabindex="-1"></a><span class="co">#&gt; 27      27  15                0.0001</span></span>
+<span id="cb26-30"><a href="#cb26-30" tabindex="-1"></a><span class="co">#&gt; 28      28  58                0.0000</span></span>
+<span id="cb26-31"><a href="#cb26-31" tabindex="-1"></a><span class="co">#&gt; 29      29   6                0.0000</span></span>
+<span id="cb26-32"><a href="#cb26-32" tabindex="-1"></a><span class="co">#&gt; 30      30  83                0.0000</span></span>
+<span id="cb26-33"><a href="#cb26-33" tabindex="-1"></a><span class="co">#&gt; 31      31  22                0.0000</span></span>
+<span id="cb26-34"><a href="#cb26-34" tabindex="-1"></a><span class="co">#&gt; 32      32  70                0.0000</span></span>
+<span id="cb26-35"><a href="#cb26-35" tabindex="-1"></a><span class="co">#&gt; 33      33  59                0.0000</span></span>
+<span id="cb26-36"><a href="#cb26-36" tabindex="-1"></a><span class="co">#&gt; 34      34  43                0.0000</span></span>
+<span id="cb26-37"><a href="#cb26-37" tabindex="-1"></a><span class="co">#&gt; 35      35   4                0.0000</span></span>
+<span id="cb26-38"><a href="#cb26-38" tabindex="-1"></a><span class="co">#&gt; 36      36   5                0.0000</span></span>
+<span id="cb26-39"><a href="#cb26-39" tabindex="-1"></a><span class="co">#&gt; 37      37   7                0.0000</span></span>
+<span id="cb26-40"><a href="#cb26-40" tabindex="-1"></a><span class="co">#&gt; 38      38   8                0.0000</span></span>
+<span id="cb26-41"><a href="#cb26-41" tabindex="-1"></a><span class="co">#&gt; 39      39  10                0.0000</span></span>
+<span id="cb26-42"><a href="#cb26-42" tabindex="-1"></a><span class="co">#&gt; 40      40  11                0.0000</span></span>
+<span id="cb26-43"><a href="#cb26-43" tabindex="-1"></a><span class="co">#&gt; 41      41  12                0.0000</span></span>
+<span id="cb26-44"><a href="#cb26-44" tabindex="-1"></a><span class="co">#&gt; 42      42  13                0.0000</span></span>
+<span id="cb26-45"><a href="#cb26-45" tabindex="-1"></a><span class="co">#&gt; 43      43  14                0.0000</span></span>
+<span id="cb26-46"><a href="#cb26-46" tabindex="-1"></a><span class="co">#&gt; 44      44  16                0.0000</span></span>
+<span id="cb26-47"><a href="#cb26-47" tabindex="-1"></a><span class="co">#&gt; 45      45  19                0.0000</span></span>
+<span id="cb26-48"><a href="#cb26-48" tabindex="-1"></a><span class="co">#&gt; 46      46  21                0.0000</span></span>
+<span id="cb26-49"><a href="#cb26-49" tabindex="-1"></a><span class="co">#&gt; 47      47  23                0.0000</span></span>
+<span id="cb26-50"><a href="#cb26-50" tabindex="-1"></a><span class="co">#&gt; 48      48  24                0.0000</span></span>
+<span id="cb26-51"><a href="#cb26-51" tabindex="-1"></a><span class="co">#&gt; 49      49  27                0.0000</span></span>
+<span id="cb26-52"><a href="#cb26-52" tabindex="-1"></a><span class="co">#&gt; 50      50  29                0.0000</span></span></code></pre></div>
 <div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a><span class="fu">head</span>(<span class="fu">round</span>(ranking2[[<span class="st">&quot;0.85&quot;</span>]], <span class="dv">4</span>), <span class="dv">50</span>)</span>
 <span id="cb27-2"><a href="#cb27-2" tabindex="-1"></a><span class="co">#&gt;    Ranking DMU Probability_predicted  betas Probability_target</span></span>
 <span id="cb27-3"><a href="#cb27-3" tabindex="-1"></a><span class="co">#&gt; 1        1   1                1.0000 0.0000               0.85</span></span>
 <span id="cb27-4"><a href="#cb27-4" tabindex="-1"></a><span class="co">#&gt; 2        2   2                1.0000 0.0000               0.85</span></span>
 <span id="cb27-5"><a href="#cb27-5" tabindex="-1"></a><span class="co">#&gt; 3        3   3                1.0000 0.0000               0.85</span></span>
-<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a><span class="co">#&gt; 4        4  18                1.0000 0.0000               0.85</span></span>
-<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a><span class="co">#&gt; 5        5  17                1.0000 0.0000               0.85</span></span>
-<span id="cb27-8"><a href="#cb27-8" tabindex="-1"></a><span class="co">#&gt; 6        6  46                0.9851 0.0000               0.85</span></span>
-<span id="cb27-9"><a href="#cb27-9" tabindex="-1"></a><span class="co">#&gt; 7        7  20                0.9692 0.0000               0.85</span></span>
-<span id="cb27-10"><a href="#cb27-10" tabindex="-1"></a><span class="co">#&gt; 8        8  62                0.9672 0.0000               0.85</span></span>
-<span id="cb27-11"><a href="#cb27-11" tabindex="-1"></a><span class="co">#&gt; 9        9   9                0.8137 0.0095               0.85</span></span>
-<span id="cb27-12"><a href="#cb27-12" tabindex="-1"></a><span class="co">#&gt; 10      10  75                0.7154 0.0578               0.85</span></span>
-<span id="cb27-13"><a href="#cb27-13" tabindex="-1"></a><span class="co">#&gt; 11      11  26                0.7744 0.0589               0.85</span></span>
-<span id="cb27-14"><a href="#cb27-14" tabindex="-1"></a><span class="co">#&gt; 12      12  22                0.0965 0.0649               0.85</span></span>
-<span id="cb27-15"><a href="#cb27-15" tabindex="-1"></a><span class="co">#&gt; 13      13  59                0.3992 0.0710               0.85</span></span>
-<span id="cb27-16"><a href="#cb27-16" tabindex="-1"></a><span class="co">#&gt; 14      14  44                0.6793 0.1155               0.85</span></span>
-<span id="cb27-17"><a href="#cb27-17" tabindex="-1"></a><span class="co">#&gt; 15      15  48                0.0370 0.1168               0.85</span></span>
-<span id="cb27-18"><a href="#cb27-18" tabindex="-1"></a><span class="co">#&gt; 16      16  36                0.5447 0.1827               0.85</span></span>
-<span id="cb27-19"><a href="#cb27-19" tabindex="-1"></a><span class="co">#&gt; 17      17  53                0.0002 0.2052               0.85</span></span>
-<span id="cb27-20"><a href="#cb27-20" tabindex="-1"></a><span class="co">#&gt; 18      18  73                0.0000 0.2177               0.85</span></span>
-<span id="cb27-21"><a href="#cb27-21" tabindex="-1"></a><span class="co">#&gt; 19      19  71                0.2387 0.2327               0.85</span></span>
-<span id="cb27-22"><a href="#cb27-22" tabindex="-1"></a><span class="co">#&gt; 20      20  89                0.0099 0.2399               0.85</span></span>
-<span id="cb27-23"><a href="#cb27-23" tabindex="-1"></a><span class="co">#&gt; 21      21  66                0.0000 0.2401               0.85</span></span>
-<span id="cb27-24"><a href="#cb27-24" tabindex="-1"></a><span class="co">#&gt; 22      22  69                0.0015 0.2688               0.85</span></span>
-<span id="cb27-25"><a href="#cb27-25" tabindex="-1"></a><span class="co">#&gt; 23      23  94                0.0000 0.3038               0.85</span></span>
-<span id="cb27-26"><a href="#cb27-26" tabindex="-1"></a><span class="co">#&gt; 24      24  78                0.0000 0.3155               0.85</span></span>
-<span id="cb27-27"><a href="#cb27-27" tabindex="-1"></a><span class="co">#&gt; 25      25  61                0.0084 0.3402               0.85</span></span>
-<span id="cb27-28"><a href="#cb27-28" tabindex="-1"></a><span class="co">#&gt; 26      26  25                0.2078 0.3505               0.85</span></span>
-<span id="cb27-29"><a href="#cb27-29" tabindex="-1"></a><span class="co">#&gt; 27      27  77                0.0000 0.3644               0.85</span></span>
-<span id="cb27-30"><a href="#cb27-30" tabindex="-1"></a><span class="co">#&gt; 28      28  12                0.0862 0.3660               0.85</span></span>
-<span id="cb27-31"><a href="#cb27-31" tabindex="-1"></a><span class="co">#&gt; 29      29  55                0.0041 0.3939               0.85</span></span>
-<span id="cb27-32"><a href="#cb27-32" tabindex="-1"></a><span class="co">#&gt; 30      30  72                0.0000 0.3952               0.85</span></span>
-<span id="cb27-33"><a href="#cb27-33" tabindex="-1"></a><span class="co">#&gt; 31      31  68                0.0249 0.4415               0.85</span></span>
-<span id="cb27-34"><a href="#cb27-34" tabindex="-1"></a><span class="co">#&gt; 32      32  43                0.0000 0.4489               0.85</span></span>
-<span id="cb27-35"><a href="#cb27-35" tabindex="-1"></a><span class="co">#&gt; 33      33  65                0.0000 0.4537               0.85</span></span>
-<span id="cb27-36"><a href="#cb27-36" tabindex="-1"></a><span class="co">#&gt; 34      34  31                0.0961 0.4672               0.85</span></span>
-<span id="cb27-37"><a href="#cb27-37" tabindex="-1"></a><span class="co">#&gt; 35      35  54                0.0000 0.5288               0.85</span></span>
-<span id="cb27-38"><a href="#cb27-38" tabindex="-1"></a><span class="co">#&gt; 36      36  60                0.0000 0.5365               0.85</span></span>
-<span id="cb27-39"><a href="#cb27-39" tabindex="-1"></a><span class="co">#&gt; 37      37  51                0.0106 0.5551               0.85</span></span>
-<span id="cb27-40"><a href="#cb27-40" tabindex="-1"></a><span class="co">#&gt; 38      38  42                0.0279 0.6201               0.85</span></span>
-<span id="cb27-41"><a href="#cb27-41" tabindex="-1"></a><span class="co">#&gt; 39      39  63                0.0000 0.6523               0.85</span></span>
-<span id="cb27-42"><a href="#cb27-42" tabindex="-1"></a><span class="co">#&gt; 40      40  28                0.0166 0.6838               0.85</span></span>
-<span id="cb27-43"><a href="#cb27-43" tabindex="-1"></a><span class="co">#&gt; 41      41  47                0.0011 0.7725               0.85</span></span>
-<span id="cb27-44"><a href="#cb27-44" tabindex="-1"></a><span class="co">#&gt; 42      42  45                0.0000 0.7803               0.85</span></span>
-<span id="cb27-45"><a href="#cb27-45" tabindex="-1"></a><span class="co">#&gt; 43      43  29                0.0000 0.8214               0.85</span></span>
-<span id="cb27-46"><a href="#cb27-46" tabindex="-1"></a><span class="co">#&gt; 44      44  41                0.0037 0.8358               0.85</span></span>
-<span id="cb27-47"><a href="#cb27-47" tabindex="-1"></a><span class="co">#&gt; 45      45  79                0.0000 0.9419               0.85</span></span>
-<span id="cb27-48"><a href="#cb27-48" tabindex="-1"></a><span class="co">#&gt; 46      46  35                0.0014 0.9751               0.85</span></span>
-<span id="cb27-49"><a href="#cb27-49" tabindex="-1"></a><span class="co">#&gt; 47      47  74                0.0000 1.1128               0.85</span></span>
-<span id="cb27-50"><a href="#cb27-50" tabindex="-1"></a><span class="co">#&gt; 48      48  37                0.0000 1.2416               0.85</span></span>
-<span id="cb27-51"><a href="#cb27-51" tabindex="-1"></a><span class="co">#&gt; 49      49  24                0.0000 1.2835               0.85</span></span>
-<span id="cb27-52"><a href="#cb27-52" tabindex="-1"></a><span class="co">#&gt; 50      50  40                0.0000 1.7136               0.85</span></span></code></pre></div>
+<span id="cb27-6"><a href="#cb27-6" tabindex="-1"></a><span class="co">#&gt; 4        4  17                1.0000 0.0000               0.85</span></span>
+<span id="cb27-7"><a href="#cb27-7" tabindex="-1"></a><span class="co">#&gt; 5        5  20                1.0000 0.0000               0.85</span></span>
+<span id="cb27-8"><a href="#cb27-8" tabindex="-1"></a><span class="co">#&gt; 6        6  46                1.0000 0.0000               0.85</span></span>
+<span id="cb27-9"><a href="#cb27-9" tabindex="-1"></a><span class="co">#&gt; 7        7  62                0.9988 0.0000               0.85</span></span>
+<span id="cb27-10"><a href="#cb27-10" tabindex="-1"></a><span class="co">#&gt; 8        8   9                0.9881 0.0000               0.85</span></span>
+<span id="cb27-11"><a href="#cb27-11" tabindex="-1"></a><span class="co">#&gt; 9        9  92                0.9839 0.0000               0.85</span></span>
+<span id="cb27-12"><a href="#cb27-12" tabindex="-1"></a><span class="co">#&gt; 10      10  18                0.9263 0.0000               0.85</span></span>
+<span id="cb27-13"><a href="#cb27-13" tabindex="-1"></a><span class="co">#&gt; 11      11  75                0.8132 0.0056               0.85</span></span>
+<span id="cb27-14"><a href="#cb27-14" tabindex="-1"></a><span class="co">#&gt; 12      12  36                0.8129 0.0065               0.85</span></span>
+<span id="cb27-15"><a href="#cb27-15" tabindex="-1"></a><span class="co">#&gt; 13      13  56                0.7758 0.0109               0.85</span></span>
+<span id="cb27-16"><a href="#cb27-16" tabindex="-1"></a><span class="co">#&gt; 14      14  26                0.7053 0.0341               0.85</span></span>
+<span id="cb27-17"><a href="#cb27-17" tabindex="-1"></a><span class="co">#&gt; 15      15  85                0.3999 0.0460               0.85</span></span>
+<span id="cb27-18"><a href="#cb27-18" tabindex="-1"></a><span class="co">#&gt; 16      16  44                0.0596 0.0834               0.85</span></span>
+<span id="cb27-19"><a href="#cb27-19" tabindex="-1"></a><span class="co">#&gt; 17      17  71                0.0854 0.0905               0.85</span></span>
+<span id="cb27-20"><a href="#cb27-20" tabindex="-1"></a><span class="co">#&gt; 18      18  91                0.1226 0.0933               0.85</span></span>
+<span id="cb27-21"><a href="#cb27-21" tabindex="-1"></a><span class="co">#&gt; 19      19  31                0.0766 0.0954               0.85</span></span>
+<span id="cb27-22"><a href="#cb27-22" tabindex="-1"></a><span class="co">#&gt; 20      20  25                0.3268 0.0970               0.85</span></span>
+<span id="cb27-23"><a href="#cb27-23" tabindex="-1"></a><span class="co">#&gt; 21      21  95                0.0545 0.1705               0.85</span></span>
+<span id="cb27-24"><a href="#cb27-24" tabindex="-1"></a><span class="co">#&gt; 22      22  42                0.0408 0.1815               0.85</span></span>
+<span id="cb27-25"><a href="#cb27-25" tabindex="-1"></a><span class="co">#&gt; 23      23  70                0.0000 0.2384               0.85</span></span>
+<span id="cb27-26"><a href="#cb27-26" tabindex="-1"></a><span class="co">#&gt; 24      24  28                0.0113 0.2454               0.85</span></span>
+<span id="cb27-27"><a href="#cb27-27" tabindex="-1"></a><span class="co">#&gt; 25      25  15                0.0001 0.3100               0.85</span></span>
+<span id="cb27-28"><a href="#cb27-28" tabindex="-1"></a><span class="co">#&gt; 26      26  64                0.0000 0.3209               0.85</span></span>
+<span id="cb27-29"><a href="#cb27-29" tabindex="-1"></a><span class="co">#&gt; 27      27  73                0.0000 0.3535               0.85</span></span>
+<span id="cb27-30"><a href="#cb27-30" tabindex="-1"></a><span class="co">#&gt; 28      28  58                0.0000 0.4716               0.85</span></span>
+<span id="cb27-31"><a href="#cb27-31" tabindex="-1"></a><span class="co">#&gt; 29      29   6                0.0000 0.4904               0.85</span></span>
+<span id="cb27-32"><a href="#cb27-32" tabindex="-1"></a><span class="co">#&gt; 30      30  22                0.0000 0.5146               0.85</span></span>
+<span id="cb27-33"><a href="#cb27-33" tabindex="-1"></a><span class="co">#&gt; 31      31  86                0.0000 0.6240               0.85</span></span>
+<span id="cb27-34"><a href="#cb27-34" tabindex="-1"></a><span class="co">#&gt; 32      32  67                0.0000 0.6929               0.85</span></span>
+<span id="cb27-35"><a href="#cb27-35" tabindex="-1"></a><span class="co">#&gt; 33      33  48                0.0000 0.7629               0.85</span></span>
+<span id="cb27-36"><a href="#cb27-36" tabindex="-1"></a><span class="co">#&gt; 34      34  61                0.0000 0.8047               0.85</span></span>
+<span id="cb27-37"><a href="#cb27-37" tabindex="-1"></a><span class="co">#&gt; 35      35  27                0.0000 0.8600               0.85</span></span>
+<span id="cb27-38"><a href="#cb27-38" tabindex="-1"></a><span class="co">#&gt; 36      36  68                0.0000 0.9199               0.85</span></span>
+<span id="cb27-39"><a href="#cb27-39" tabindex="-1"></a><span class="co">#&gt; 37      37  29                0.0000 0.9504               0.85</span></span>
+<span id="cb27-40"><a href="#cb27-40" tabindex="-1"></a><span class="co">#&gt; 38      38  24                0.0000 0.9927               0.85</span></span>
+<span id="cb27-41"><a href="#cb27-41" tabindex="-1"></a><span class="co">#&gt; 39      39   4                0.0000 1.0025               0.85</span></span>
+<span id="cb27-42"><a href="#cb27-42" tabindex="-1"></a><span class="co">#&gt; 40      40  37                0.0000 1.0100               0.85</span></span>
+<span id="cb27-43"><a href="#cb27-43" tabindex="-1"></a><span class="co">#&gt; 41      41  12                0.0000 1.0217               0.85</span></span>
+<span id="cb27-44"><a href="#cb27-44" tabindex="-1"></a><span class="co">#&gt; 42      42  49                0.0000 1.1646               0.85</span></span>
+<span id="cb27-45"><a href="#cb27-45" tabindex="-1"></a><span class="co">#&gt; 43      43  57                0.0000 1.1835               0.85</span></span>
+<span id="cb27-46"><a href="#cb27-46" tabindex="-1"></a><span class="co">#&gt; 44      44  52                0.0000 1.2705               0.85</span></span>
+<span id="cb27-47"><a href="#cb27-47" tabindex="-1"></a><span class="co">#&gt; 45      45  47                0.0000 1.3890               0.85</span></span>
+<span id="cb27-48"><a href="#cb27-48" tabindex="-1"></a><span class="co">#&gt; 46      46  41                0.0000 1.3902               0.85</span></span>
+<span id="cb27-49"><a href="#cb27-49" tabindex="-1"></a><span class="co">#&gt; 47      47  45                0.0000 1.4376               0.85</span></span>
+<span id="cb27-50"><a href="#cb27-50" tabindex="-1"></a><span class="co">#&gt; 48      48  35                0.0000 1.4977               0.85</span></span>
+<span id="cb27-51"><a href="#cb27-51" tabindex="-1"></a><span class="co">#&gt; 49      49  14                0.0000 1.5997               0.85</span></span>
+<span id="cb27-52"><a href="#cb27-52" tabindex="-1"></a><span class="co">#&gt; 50      50  39                0.0000 1.8141               0.85</span></span></code></pre></div>
 </div>
 <div id="peers-by-efficiency-thresholds" class="section level2">
 <h2>Peers by efficiency thresholds</h2>
@@ -842,61 +915,62 @@ weight importance given <code>relative_importance</code>.</p>
 <span id="cb28-3"><a href="#cb28-3" tabindex="-1"></a>  <span class="at">x =</span> x,</span>
 <span id="cb28-4"><a href="#cb28-4" tabindex="-1"></a>  <span class="at">y =</span> y,</span>
 <span id="cb28-5"><a href="#cb28-5" tabindex="-1"></a>  <span class="at">final_model =</span> models[[<span class="st">&quot;best_model_fit&quot;</span>]][[<span class="st">&quot;nnet&quot;</span>]],</span>
-<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a>  <span class="at">efficiency_thresholds =</span> efficiency_thresholds,</span>
-<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a>  <span class="at">weighted =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>  <span class="at">relative_importance =</span> relative_importance</span>
-<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb28-6"><a href="#cb28-6" tabindex="-1"></a>  <span class="at">targets =</span> targets,</span>
+<span id="cb28-7"><a href="#cb28-7" tabindex="-1"></a>  <span class="at">efficiency_thresholds =</span> efficiency_thresholds,</span>
+<span id="cb28-8"><a href="#cb28-8" tabindex="-1"></a>  <span class="at">weighted =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb28-9"><a href="#cb28-9" tabindex="-1"></a>  <span class="at">relative_importance =</span> relative_importance</span>
+<span id="cb28-10"><a href="#cb28-10" tabindex="-1"></a>)</span></code></pre></div>
 <div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a><span class="fu">head</span>(peers, <span class="dv">50</span>)</span>
 <span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a><span class="co">#&gt;    DMU 0.75 0.85 0.95</span></span>
 <span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a><span class="co">#&gt; 1    1    1    1    1</span></span>
 <span id="cb29-4"><a href="#cb29-4" tabindex="-1"></a><span class="co">#&gt; 2    2    2    2    2</span></span>
 <span id="cb29-5"><a href="#cb29-5" tabindex="-1"></a><span class="co">#&gt; 3    3    3    3    3</span></span>
-<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a><span class="co">#&gt; 4    4    9    3    3</span></span>
-<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a><span class="co">#&gt; 5    5    9    3    3</span></span>
-<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a><span class="co">#&gt; 6    6    9    3    3</span></span>
-<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a><span class="co">#&gt; 7    7    9    3    3</span></span>
-<span id="cb29-10"><a href="#cb29-10" tabindex="-1"></a><span class="co">#&gt; 8    8    9    3    3</span></span>
-<span id="cb29-11"><a href="#cb29-11" tabindex="-1"></a><span class="co">#&gt; 9    9    9    3    3</span></span>
-<span id="cb29-12"><a href="#cb29-12" tabindex="-1"></a><span class="co">#&gt; 10  10    9    3    3</span></span>
-<span id="cb29-13"><a href="#cb29-13" tabindex="-1"></a><span class="co">#&gt; 11  11    9    3    3</span></span>
-<span id="cb29-14"><a href="#cb29-14" tabindex="-1"></a><span class="co">#&gt; 12  12   18   18   18</span></span>
-<span id="cb29-15"><a href="#cb29-15" tabindex="-1"></a><span class="co">#&gt; 13  13    9    3    3</span></span>
-<span id="cb29-16"><a href="#cb29-16" tabindex="-1"></a><span class="co">#&gt; 14  14    9   18   18</span></span>
-<span id="cb29-17"><a href="#cb29-17" tabindex="-1"></a><span class="co">#&gt; 15  15   18   18   18</span></span>
-<span id="cb29-18"><a href="#cb29-18" tabindex="-1"></a><span class="co">#&gt; 16  16    9    3    3</span></span>
+<span id="cb29-6"><a href="#cb29-6" tabindex="-1"></a><span class="co">#&gt; 4    4    9    9    9</span></span>
+<span id="cb29-7"><a href="#cb29-7" tabindex="-1"></a><span class="co">#&gt; 5    5    9    9    9</span></span>
+<span id="cb29-8"><a href="#cb29-8" tabindex="-1"></a><span class="co">#&gt; 6    6    9    9    9</span></span>
+<span id="cb29-9"><a href="#cb29-9" tabindex="-1"></a><span class="co">#&gt; 7    7    9    9    9</span></span>
+<span id="cb29-10"><a href="#cb29-10" tabindex="-1"></a><span class="co">#&gt; 8    8    9    9    9</span></span>
+<span id="cb29-11"><a href="#cb29-11" tabindex="-1"></a><span class="co">#&gt; 9    9    9    9    9</span></span>
+<span id="cb29-12"><a href="#cb29-12" tabindex="-1"></a><span class="co">#&gt; 10  10    9    9    9</span></span>
+<span id="cb29-13"><a href="#cb29-13" tabindex="-1"></a><span class="co">#&gt; 11  11    9    9    9</span></span>
+<span id="cb29-14"><a href="#cb29-14" tabindex="-1"></a><span class="co">#&gt; 12  12   18   18    9</span></span>
+<span id="cb29-15"><a href="#cb29-15" tabindex="-1"></a><span class="co">#&gt; 13  13    9    9    9</span></span>
+<span id="cb29-16"><a href="#cb29-16" tabindex="-1"></a><span class="co">#&gt; 14  14    9    9    9</span></span>
+<span id="cb29-17"><a href="#cb29-17" tabindex="-1"></a><span class="co">#&gt; 15  15   18   18   17</span></span>
+<span id="cb29-18"><a href="#cb29-18" tabindex="-1"></a><span class="co">#&gt; 16  16    9    9    9</span></span>
 <span id="cb29-19"><a href="#cb29-19" tabindex="-1"></a><span class="co">#&gt; 17  17   17   17   17</span></span>
-<span id="cb29-20"><a href="#cb29-20" tabindex="-1"></a><span class="co">#&gt; 18  18   18   18   18</span></span>
-<span id="cb29-21"><a href="#cb29-21" tabindex="-1"></a><span class="co">#&gt; 19  19    9   18   18</span></span>
+<span id="cb29-20"><a href="#cb29-20" tabindex="-1"></a><span class="co">#&gt; 18  18   18   18   17</span></span>
+<span id="cb29-21"><a href="#cb29-21" tabindex="-1"></a><span class="co">#&gt; 19  19    9    9    9</span></span>
 <span id="cb29-22"><a href="#cb29-22" tabindex="-1"></a><span class="co">#&gt; 20  20   20   20   20</span></span>
-<span id="cb29-23"><a href="#cb29-23" tabindex="-1"></a><span class="co">#&gt; 21  21    9    3    3</span></span>
-<span id="cb29-24"><a href="#cb29-24" tabindex="-1"></a><span class="co">#&gt; 22  22   18   18   18</span></span>
-<span id="cb29-25"><a href="#cb29-25" tabindex="-1"></a><span class="co">#&gt; 23  23    9   18   18</span></span>
-<span id="cb29-26"><a href="#cb29-26" tabindex="-1"></a><span class="co">#&gt; 24  24   18   18   18</span></span>
-<span id="cb29-27"><a href="#cb29-27" tabindex="-1"></a><span class="co">#&gt; 25  25   26   17   17</span></span>
-<span id="cb29-28"><a href="#cb29-28" tabindex="-1"></a><span class="co">#&gt; 26  26   26   17   17</span></span>
-<span id="cb29-29"><a href="#cb29-29" tabindex="-1"></a><span class="co">#&gt; 27  27   18   18   18</span></span>
+<span id="cb29-23"><a href="#cb29-23" tabindex="-1"></a><span class="co">#&gt; 21  21    9    9    9</span></span>
+<span id="cb29-24"><a href="#cb29-24" tabindex="-1"></a><span class="co">#&gt; 22  22   18   18   17</span></span>
+<span id="cb29-25"><a href="#cb29-25" tabindex="-1"></a><span class="co">#&gt; 23  23    9    9    9</span></span>
+<span id="cb29-26"><a href="#cb29-26" tabindex="-1"></a><span class="co">#&gt; 24  24   18   18   17</span></span>
+<span id="cb29-27"><a href="#cb29-27" tabindex="-1"></a><span class="co">#&gt; 25  25   17   17   17</span></span>
+<span id="cb29-28"><a href="#cb29-28" tabindex="-1"></a><span class="co">#&gt; 26  26   17   17   17</span></span>
+<span id="cb29-29"><a href="#cb29-29" tabindex="-1"></a><span class="co">#&gt; 27  27   17   17   17</span></span>
 <span id="cb29-30"><a href="#cb29-30" tabindex="-1"></a><span class="co">#&gt; 28  28   20   20   20</span></span>
-<span id="cb29-31"><a href="#cb29-31" tabindex="-1"></a><span class="co">#&gt; 29  29   18   18   18</span></span>
-<span id="cb29-32"><a href="#cb29-32" tabindex="-1"></a><span class="co">#&gt; 30  30   18   18   18</span></span>
-<span id="cb29-33"><a href="#cb29-33" tabindex="-1"></a><span class="co">#&gt; 31  31   18   18   18</span></span>
-<span id="cb29-34"><a href="#cb29-34" tabindex="-1"></a><span class="co">#&gt; 32  32   18   18   18</span></span>
-<span id="cb29-35"><a href="#cb29-35" tabindex="-1"></a><span class="co">#&gt; 33  33    9   18   18</span></span>
-<span id="cb29-36"><a href="#cb29-36" tabindex="-1"></a><span class="co">#&gt; 34  34   18   18   18</span></span>
-<span id="cb29-37"><a href="#cb29-37" tabindex="-1"></a><span class="co">#&gt; 35  35   18   18   18</span></span>
-<span id="cb29-38"><a href="#cb29-38" tabindex="-1"></a><span class="co">#&gt; 36  36   20   20   20</span></span>
-<span id="cb29-39"><a href="#cb29-39" tabindex="-1"></a><span class="co">#&gt; 37  37   26   18   18</span></span>
-<span id="cb29-40"><a href="#cb29-40" tabindex="-1"></a><span class="co">#&gt; 38  38    9   18   18</span></span>
-<span id="cb29-41"><a href="#cb29-41" tabindex="-1"></a><span class="co">#&gt; 39  39   18   18   18</span></span>
-<span id="cb29-42"><a href="#cb29-42" tabindex="-1"></a><span class="co">#&gt; 40  40   18   18   18</span></span>
-<span id="cb29-43"><a href="#cb29-43" tabindex="-1"></a><span class="co">#&gt; 41  41   18   18   18</span></span>
-<span id="cb29-44"><a href="#cb29-44" tabindex="-1"></a><span class="co">#&gt; 42  42   46   46   46</span></span>
+<span id="cb29-31"><a href="#cb29-31" tabindex="-1"></a><span class="co">#&gt; 29  29   18   18   17</span></span>
+<span id="cb29-32"><a href="#cb29-32" tabindex="-1"></a><span class="co">#&gt; 30  30   18   18   17</span></span>
+<span id="cb29-33"><a href="#cb29-33" tabindex="-1"></a><span class="co">#&gt; 31  31   18   18   17</span></span>
+<span id="cb29-34"><a href="#cb29-34" tabindex="-1"></a><span class="co">#&gt; 32  32   18   18   17</span></span>
+<span id="cb29-35"><a href="#cb29-35" tabindex="-1"></a><span class="co">#&gt; 33  33   18   18    9</span></span>
+<span id="cb29-36"><a href="#cb29-36" tabindex="-1"></a><span class="co">#&gt; 34  34   18   18   17</span></span>
+<span id="cb29-37"><a href="#cb29-37" tabindex="-1"></a><span class="co">#&gt; 35  35   18   18   17</span></span>
+<span id="cb29-38"><a href="#cb29-38" tabindex="-1"></a><span class="co">#&gt; 36  36   36   20   20</span></span>
+<span id="cb29-39"><a href="#cb29-39" tabindex="-1"></a><span class="co">#&gt; 37  37   17   17   17</span></span>
+<span id="cb29-40"><a href="#cb29-40" tabindex="-1"></a><span class="co">#&gt; 38  38   18   18   17</span></span>
+<span id="cb29-41"><a href="#cb29-41" tabindex="-1"></a><span class="co">#&gt; 39  39   18   18   17</span></span>
+<span id="cb29-42"><a href="#cb29-42" tabindex="-1"></a><span class="co">#&gt; 40  40   18   18   46</span></span>
+<span id="cb29-43"><a href="#cb29-43" tabindex="-1"></a><span class="co">#&gt; 41  41   17   17   17</span></span>
+<span id="cb29-44"><a href="#cb29-44" tabindex="-1"></a><span class="co">#&gt; 42  42   36   46   46</span></span>
 <span id="cb29-45"><a href="#cb29-45" tabindex="-1"></a><span class="co">#&gt; 43  43   46   46   46</span></span>
 <span id="cb29-46"><a href="#cb29-46" tabindex="-1"></a><span class="co">#&gt; 44  44   46   46   46</span></span>
-<span id="cb29-47"><a href="#cb29-47" tabindex="-1"></a><span class="co">#&gt; 45  45   18   18   18</span></span>
+<span id="cb29-47"><a href="#cb29-47" tabindex="-1"></a><span class="co">#&gt; 45  45   17   17   17</span></span>
 <span id="cb29-48"><a href="#cb29-48" tabindex="-1"></a><span class="co">#&gt; 46  46   46   46   46</span></span>
-<span id="cb29-49"><a href="#cb29-49" tabindex="-1"></a><span class="co">#&gt; 47  47   26   46   46</span></span>
+<span id="cb29-49"><a href="#cb29-49" tabindex="-1"></a><span class="co">#&gt; 47  47   17   17   17</span></span>
 <span id="cb29-50"><a href="#cb29-50" tabindex="-1"></a><span class="co">#&gt; 48  48   46   46   46</span></span>
-<span id="cb29-51"><a href="#cb29-51" tabindex="-1"></a><span class="co">#&gt; 49  49   18   18   18</span></span>
+<span id="cb29-51"><a href="#cb29-51" tabindex="-1"></a><span class="co">#&gt; 49  49   18   18   17</span></span>
 <span id="cb29-52"><a href="#cb29-52" tabindex="-1"></a><span class="co">#&gt; 50  50   46   46   46</span></span></code></pre></div>
 </div>
 

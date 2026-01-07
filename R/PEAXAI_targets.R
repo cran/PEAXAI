@@ -13,6 +13,9 @@
 #' @param y A numeric vector indicating the column indexes of output variables in \code{data}.
 #' @param final_model A fitted \pkg{caret} model of class \code{"train"} that supports
 #'   \code{predict(type = "prob")} and returns a probability column for the efficient class.
+#' @param calibration_model Optional probability-calibration model applied to the raw predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
+#' If provided, calibrated probabilities are used for ranking and threshold-based decisions.
+#' Set to \code{NULL} to use uncalibrated predictions.
 #' @param efficiency_thresholds A numeric vector of probability levels in (0,1)
 #'   that define the efficiency classes (e.g., \code{c(0.75, 0.9, 0.95)}).
 #' @param directional_vector A \code{list} with the required information to
@@ -108,8 +111,9 @@
 #' @export
 
 PEAXAI_targets <- function (
-    data, x, y, final_model, efficiency_thresholds,
-    directional_vector, n_expand, n_grid, max_y = 2, min_x = 1
+    data, x, y, final_model, calibration_model = NULL,
+    efficiency_thresholds, directional_vector,
+    n_expand, n_grid, max_y = 2, min_x = 1
 ) {
 
   validate_parametes_PEAXAI_targets(
@@ -129,6 +133,8 @@ PEAXAI_targets <- function (
 
   # min and max values
   min_x_possible <- apply(as.matrix(data[,x]), 2, min)
+
+  max_y_possible <- apply(as.matrix(data[,y]), 2, max)
 
   # number of decimals to round
   precision_prob <- 5
@@ -191,6 +197,7 @@ PEAXAI_targets <- function (
     x = x,
     y = y,
     final_model = final_model,
+    calibration_model = calibration_model,
     efficiency_thresholds = efficiency_thresholds,
     n_expand = n_expand,
     vector_gx = vector_gx,
@@ -230,8 +237,14 @@ PEAXAI_targets <- function (
     # loop for each observation
     for (i in 1:nrow(data)) {
 
-      # inicial_prediction
-      prediction_0 <- predict(final_model, data[i,variables], type = "prob")[1]
+      # inicial prediction
+      prediction_0 <- PEAXAI_predict(
+        data = data[i,variables],
+        x = x,
+        y = y,
+        final_model = final_model,
+        calibration_model = calibration_model
+      )
 
       # the DMU is more efficient then threshold?
       if (prediction_0 > thr) {
@@ -315,8 +328,19 @@ PEAXAI_targets <- function (
           mx <- as.matrix(matrix_eff[, x, drop = FALSE])
           min_x_possible_vector <- as.numeric(min_x_possible*min_x)
 
+          my <- as.matrix(matrix_eff[, y, drop = FALSE])
+          max_y_possible_vector <- as.numeric(max_y_possible*max_y)
+
+
           # sums how many TRUE lines are violating the restriction
           viol <- rowSums(mx < rep(min_x_possible_vector, each = nrow(mx))) > 0
+          idx_viol_x <- which(viol)
+          viol <- rowSums(my > rep(max_y_possible_vector, each = nrow(my))) > 0
+          idx_viol_y <- which(viol)
+
+          viol <- rep(FALSE, nrow(mx))
+          viol[idx_viol_x] <- TRUE
+          viol[idx_viol_y] <- TRUE
 
           keep <- !viol
           if (any(!keep)) {
@@ -330,9 +354,17 @@ PEAXAI_targets <- function (
             row_df <- as.data.frame(t(row))
             colnames(row_df) <- names(data)
 
-            pred <- unlist(predict(final_model, row_df, type = "prob")[1])
+            # pred <- unlist(predict(final_model, row_df, type = "prob")[1])
+            pred <- PEAXAI_predict(
+              data = row_df,
+              x = x,
+              y = y,
+              final_model = final_model,
+              calibration_model = calibration_model
+            )
 
             return(pred)
+
           })
 
           # # Ensures that each position is at least the maximum value observed up to that point
@@ -479,6 +511,7 @@ PEAXAI_targets <- function (
 #' @param y A numeric vector with the column indexes of output variables in \code{data}.
 #' @param final_model A fitted \pkg{caret} model of class \code{"train"} that supports
 #'   \code{predict(type = "prob")} and returns a probability column for the efficient class.
+#' @param calibration_model A model to calibrate.
 #' @param efficiency_thresholds A numeric vector of probability levels in (0,1).
 #'   Its minimum and maximum values delimit the target interval used to bracket \eqn{\beta}.
 #' @param n_expand Integer. Increment step size applied to \eqn{\beta} at each iteration.
@@ -511,8 +544,9 @@ PEAXAI_targets <- function (
 #'
 
 find_beta_maxmin <- function(
-  data, x, y, final_model, efficiency_thresholds,
-  n_expand, vector_gx, vector_gy, max_y, min_x
+  data, x, y, final_model, calibration_model,
+  efficiency_thresholds, n_expand, vector_gx,
+  vector_gy, max_y, min_x
 ) {
 
   betas <- as.data.frame(matrix(
@@ -529,7 +563,14 @@ find_beta_maxmin <- function(
   # for each DMU, it will be calculated the max beta possible
   for (i in 1:nrow(data)) {
 
-    prediction_0 <- predict(final_model, data[i,variables], type = "prob")[1]
+    # prediction_0 <- predict(final_model, data[i,variables], type = "prob")[1]
+    prediction_0 <- PEAXAI_predict(
+      data = data[i,variables],
+      x = x,
+      y = y,
+      final_model = final_model,
+      calibration_model = calibration_model
+    )
 
     # the DMU is more efficient then threshold?
     if (prediction_0 > max_efficiency_threshold) {
@@ -573,11 +614,20 @@ find_beta_maxmin <- function(
         new_point <- cbind(new_x, new_y)
         names(new_point) <- names(data[,variables])
 
-        prediction_j <- predict(final_model, new_point, type = "prob")[1]
+        # prediction_j <- predict(final_model, new_point, type = "prob")[1]
+        prediction_j <- PEAXAI_predict(
+          data = new_point,
+          x = x,
+          y = y,
+          final_model = final_model,
+          calibration_model = calibration_model
+        )
 
         # Check if the probability has decreased. The probability function should be monotonic.
         if (prediction_j < prediction_j_max) {
           prediction_j <- prediction_j_max
+        } else {
+          prediction_j_max <- prediction_j
         }
 
         if (control_threshold_min == FALSE & prediction_j > min_efficiency_threshold) {

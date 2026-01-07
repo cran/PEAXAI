@@ -6,7 +6,7 @@ output:
     toc: true
     number_sections: false
 vignette: >
-  %\VignetteIndexEntry{PEAXAI: Example with Firms}
+  %\VignetteIndexEntry{PEAXAI: Probabilistic Efficiency Analysis using Explainable Artificial Intelligence}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -103,7 +103,7 @@ To address class imbalance, we apply SMOTE based on the best-practice frontier (
 
 When the efficient class is the minority, efficient-class SMOTE on the best-practice frontier helps the classifier learn the frontier more accurately. Optionally, if the observed imbalance still falls short of the target ratio, we also generate near-frontier inefficient synthetic units derived from the frontier geometry to sharpen the separation between efficient and inefficient regions.
 ```{r}
-imbalance_rate <- seq(0.2, 0.4, 0.05) 
+imbalance_rate <- seq(0.05, 0.4, 0.05) 
 ```
 
 Define machine learning methods and their tuning parameters. Here we configure a neural network (nnet) with a grid of hyperparameters
@@ -137,7 +137,7 @@ trControl <- list(
 
 Classification metrics to optimize during training (priority order in case of ties)
 ```{r}
-metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
+metric_priority <- c("Balanced_Accuracy", "Precision")
 ```
 
 Define hold-out sample to evaluate model performance on unseen data. These samples are excluded from the cross-validation and hyperparameter tuning process. By default, is `NULL`.
@@ -169,6 +169,7 @@ models <- PEAXAI_fitting(
   methods = methods,
   trControl = trControl,
   metric_priority = metric_priority,
+  calibration_method = NULL,
   hold_out = hold_out,
   verbose = TRUE,
   seed = seed
@@ -185,14 +186,11 @@ models$performance_train
 
 
 ## XAI method for global importance
-This example uses the SA (Sensitivity Analysis) method from the rminer package—specifically the 1D perturbation scheme with the AAD measure—to compute global relative importance with `PEAXAI_global_importance.` For alternative XAI methods and options, see the package documentation.
+This example uses SHAP (SHapley Additive exPlanations) computed with the fastshap package to estimate global feature importance with `PEAXAI_global_importance`. We approximate Shapley values via Monte Carlo sampling (`nsim`) and obtain a global importance score by aggregating absolute SHAP values across observations (and then normalizing to relative importance). For alternative XAI methods and options, see the package documentation.
 ```{r}
 importance_method <- list(
-  name = "SA",
-  method = "1D-SA",
-  measures = "AAD", 
-  levels = 7,
-  baseline = "mean"
+    name = "SHAP",
+    nsim = 200
 )
 ```
 
@@ -340,6 +338,7 @@ peers <- PEAXAI_peer(
   x = x,
   y = y,
   final_model = models[["best_model_fit"]][["nnet"]],
+  targets = targets,
   efficiency_thresholds = efficiency_thresholds,
   weighted = FALSE,
   relative_importance = relative_importance

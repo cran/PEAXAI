@@ -9,6 +9,7 @@ PEAXAI_targets(
   x,
   y,
   final_model,
+  calibration_model = NULL,
   efficiency_thresholds,
   directional_vector,
   n_expand,
@@ -26,6 +27,10 @@ PEAXAI_targets(
 
 \item{final_model}{A fitted \pkg{caret} model of class \code{"train"} that supports
 \code{predict(type = "prob")} and returns a probability column for the efficient class.}
+
+\item{calibration_model}{Optional probability-calibration model applied to the raw predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
+If provided, calibrated probabilities are used for ranking and threshold-based decisions.
+Set to \code{NULL} to use uncalibrated predictions.}
 
 \item{efficiency_thresholds}{A numeric vector of probability levels in (0,1)
 that define the efficiency classes (e.g., \code{c(0.75, 0.9, 0.95)}).}

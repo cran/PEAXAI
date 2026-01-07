@@ -13,6 +13,7 @@ PEAXAI_fitting(
   trControl,
   methods,
   metric_priority = "Balanced_Accuracy",
+  calibration_method = NULL,
   hold_out = NULL,
   seed = NULL,
   verbose = TRUE
@@ -46,6 +47,21 @@ and \code{"none"}. See \pkg{caret} documentation.}
 \item{methods}{A \code{list} of selected machine learning models and their hyperparameters.}
 
 \item{metric_priority}{A \code{string} specifying the summary metric for classification to select the optimal model. Default includes \code{"Balanced_Accuracy"} due to (normally) unbalanced data.}
+
+\item{calibration_method}{Character string specifying the probability calibration
+method applied to the fitted classifier. Supported options are:
+\describe{
+\item{\code{"none"}}{No probability calibration is applied; raw classifier
+probabilities are returned.}
+\item{\code{"platt"}}{Platt scaling, which fits a logistic regression model
+mapping raw scores to calibrated probabilities. Suitable for relatively
+small samples and parametric probability adjustment.}
+\item{\code{"isotonic"}}{Isotonic regression, a non-parametric monotonic
+calibration method that adapts flexibly to the empirical score-probability
+relationship. Recommended for larger samples where sufficient calibration
+data are available.}
+}
+Calibration is performed using validation data whenever resampling is enabled.}
 
 \item{hold_out}{Numeric proportion in (0,1) for validation split (default \code{NULL}).
 If \code{NULL}, training and validation use the same data.}
@@ -95,7 +111,8 @@ balancing level.
     imbalance_rate = NULL,
     methods = methods,
     trControl = trControl,
-    metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+    metric_priority = c("Balanced_Accuracy", "Precision"),
+    calibration_method = "platt",
     seed = 1,
     verbose = FALSE
   )

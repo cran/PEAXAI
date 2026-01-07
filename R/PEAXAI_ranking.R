@@ -22,6 +22,10 @@
 #'   \item \code{"train"}: an object fitted with \pkg{caret}.
 #'   \item \code{"glm"}: a binomial logistic regression model.
 #' }
+#' @param calibration_model Optional probability-calibration model applied to the raw
+#' predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
+#' If provided, calibrated probabilities are used for ranking and threshold-based decisions.
+#' Set to \code{NULL} to use uncalibrated predictions.
 #' @param efficiency_thresholds Numeric vector defining one or more efficiency probability
 #' thresholds to determine the attainable frontier or peer set.
 #' @param targets A named list containing, for each efficiency threshold, the corresponding
@@ -116,8 +120,8 @@
 #' @export
 
 PEAXAI_ranking <- function(
-    data, x, y, final_model, efficiency_thresholds,
-    targets = NULL, rank_basis
+    data, x, y, final_model, calibration_model = NULL,
+    efficiency_thresholds, targets = NULL, rank_basis
     ) {
 
   validate_parametes_PEAXAI_ranking(
@@ -137,7 +141,14 @@ PEAXAI_ranking <- function(
 
   if (inherits(final_model, "train")) {
     # caret::train
-    prob_vector <- predict(final_model, newdata = data, type = "prob")["efficient"]
+    prob_vector <- PEAXAI_predict(
+      data = data,
+      x = x,
+      y = y,
+      final_model = final_model,
+      calibration_model = calibration_model
+    )
+    # prob_vector <- predict(final_model, newdata = data, type = "prob")["efficient"]
   } else {
     stop("Unsupported model type.")
   }

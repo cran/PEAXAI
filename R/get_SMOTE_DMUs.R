@@ -57,6 +57,12 @@ get_SMOTE_DMUs <- function (
       warning("No facets found; could not apply class balancing.")
 
       save_dataset <- rbind(save_dataset, data)
+
+      # join real data + SMOTE
+      new_data_completed <- save_dataset
+
+      # save
+      save_all_datasets_balanced[[as.character(balance)]] <- new_data_completed
       next
 
     }
@@ -142,6 +148,13 @@ get_SMOTE_DMUs <- function (
       message(paste("Balance perfect"))
 
       save_dataset <- rbind(save_dataset, data)
+
+      # join real data + SMOTE
+      new_data_completed <- save_dataset
+
+      # save
+      save_all_datasets_balanced[[as.character(balance)]] <- new_data_completed
+
       next
 
     }
@@ -275,7 +288,6 @@ get_SMOTE_DMUs <- function (
         # save DMUs selected
         new_unit$class_efficiency <- "efficient"
         save_dataset <- rbind(save_dataset, new_unit)
-
 
       } else {
 
