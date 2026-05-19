@@ -1,4 +1,4 @@
-#' @title Projection-Based Efficiency Targets
+#' @title Projection-Based Efficiency counterfactuals
 #'
 #' @description
 #' Computes efficiency projections for each observation based on a trained
@@ -16,13 +16,13 @@
 #' @param calibration_model Optional probability-calibration model applied to the raw predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
 #' If provided, calibrated probabilities are used for ranking and threshold-based decisions.
 #' Set to \code{NULL} to use uncalibrated predictions.
+#' @param sign If it is TRUE, only
 #' @param efficiency_thresholds A numeric vector of probability levels in (0,1)
 #'   that define the efficiency classes (e.g., \code{c(0.75, 0.9, 0.95)}).
 #' @param directional_vector A \code{list} with the required information to
 #'   construct the directional vector, including:
 #'   \itemize{
 #'     \item \code{relative_importance}: Numeric vector of variable importances that sum to 1.
-#'     \item \code{scope}: \code{"global"} (currently supported) or \code{"local"}.
 #'     \item \code{baseline}: \code{"mean"}, \code{"median"}, \code{"self"} or \code{"ones"}.
 #'   }
 #' @param n_expand Numeric. Number of expansion steps used to enlarge the initial
@@ -75,9 +75,9 @@
 #'     "glm" = list(
 #'       weights = "dinamic"
 #'      )
-#'    )
+#'   )
 #'
-#'   metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
+#'   metric_priority <- c("Balanced_Accuracy", "F1", "ROC_AUC")
 #'
 #'   models <- PEAXAI_fitting(
 #'     data = data, x = x, y = y, RTS = RTS,
@@ -91,36 +91,48 @@
 #'
 #'   final_model <- models[["best_model_fit"]][["glm"]]
 #'
+#'   importance_method <- list(name = "PI", n.repetitions = 5)
+#'
 #'   relative_importance <- PEAXAI_global_importance(
-#'     data = data, x = x, y = y,
 #'     final_model = final_model,
-#'     background = "real", target = "real",
-#'     importance_method = list(name = "PI", n.repetitions = 5)
+#'     x = x,
+#'     y = y,
+#'     explain_data = data,
+#'     reference_data = final_model$trainingData,
+#'     importance_method = importance_method,
+#'     seed = 1
 #'   )
 #'
 #'   efficiency_thresholds <- seq(0.75, 0.95, 0.1)
 #'
-#'   directional_vector <- list(relative_importance = relative_importance,
-#'   scope = "global", baseline  = "mean")
+#'   directional_vector <- list(
+#'     relative_importance = relative_importance,
+#'     baseline  = "mean"
+#'   )
 #'
-#'   targets <- PEAXAI_targets(data = data, x = x, y = y, final_model = final_model,
-#'   efficiency_thresholds = efficiency_thresholds, directional_vector = directional_vector,
-#'   n_expand = 0.5, n_grid = 50, max_y = 2, min_x = 1)
+#'   targets <- PEAXAI_counterfactuals(
+#'     data = data,
+#'     x = x, y = y,
+#'     final_model = final_model,
+#'     efficiency_thresholds = efficiency_thresholds,
+#'     directional_vector = directional_vector,
+#'     n_expand = 0.5, n_grid = 50, max_y = 2, min_x = 1
+#'   )
 #' }
 #'
 #' @export
 
-PEAXAI_targets <- function (
+PEAXAI_counterfactuals <- function (
     data, x, y, final_model, calibration_model = NULL,
-    efficiency_thresholds, directional_vector,
+    sign = FALSE, efficiency_thresholds, directional_vector,
     n_expand, n_grid, max_y = 2, min_x = 1
 ) {
 
-  validate_parametes_PEAXAI_targets(
-    data, x, y, final_model,
-    efficiency_thresholds, directional_vector,
-    n_expand, n_grid, max_y, min_x
-  )
+  # validate_parametes_PEAXAI_targets(
+  #   data, x, y, final_model,
+  #   efficiency_thresholds, directional_vector,
+  #   n_expand, n_grid, max_y, min_x
+  # )
 
   data <- as.data.frame(data)
 
@@ -142,36 +154,79 @@ PEAXAI_targets <- function (
   # ----------------------------------------------------------------------------
   # Build vector G (directional vector) ----------------------------------------
   # ----------------------------------------------------------------------------
-  if (directional_vector[["scope"]] == "global") {
+  is_global <- is.null(nrow(directional_vector[["relative_importance"]])) || nrow(directional_vector[["relative_importance"]]) == 1
 
-    # relative importance
-    score_imp_x <- as.numeric(directional_vector[["relative_importance"]][x])
-    score_imp_y <- as.numeric(directional_vector[["relative_importance"]][y])
+  if (is_global) {
+
+    # # relative importance
+    # score_imp_x <- as.numeric(directional_vector[["relative_importance"]][x])
+    # score_imp_y <- as.numeric(directional_vector[["relative_importance"]][y])
 
     # baseline
     if (directional_vector[["baseline"]] == "mean") {
 
-      baseline_x <- as.data.frame(t(apply(as.matrix(data[,x]), 2, mean)))
-      names(baseline_x) <- names_data[x]
-      baseline_y <- as.data.frame(t(apply(as.matrix(data[,y]), 2, mean)))
-      names(baseline_y) <- names_data[y]
+      # new
+      L2_nrom_mean <- sqrt(sum(colMeans(data[, c(x,y)])^2))
+
+      # normalize
+      v <- colMeans(data[, c(x,y)])
+
+      v_w <- v * directional_vector[["relative_importance"]]
+
+      # noralize
+      L2_nrom_vector <- sqrt(sum(v_w[, c(x,y)]^2))
+      v_final <- (v_w / L2_nrom_vector) * L2_nrom_mean
+
+      # vector_gx <- as.data.frame(v_final[,x])
+      # names(vector_gx) <- names_data[x]
+      # vector_gx <- -vector_gx
+      # vector_gy <- as.data.frame(v_final[,y])
+      # names(vector_gy) <- names_data[y]
+      # end new
+
+      # baseline_x <- vector_gx
+      # baseline_y <- vector_gy
+      # baseline_x <- as.data.frame(t(apply(as.matrix(data[,x]), 2, mean)))
+      # names(baseline_x) <- names_data[x]
+      # baseline_y <- as.data.frame(t(apply(as.matrix(data[,y]), 2, mean)))
+      # names(baseline_y) <- names_data[y]
 
     } else if (directional_vector[["baseline"]] == "median") {
+stop("Not available.")
+      # new
+      L2_nrom_mean <- sqrt(sum(colMeans(data[, c(x,y)])^2))
 
-      baseline_x <- as.data.frame(t(apply(as.matrix(data[,x]), 2, median)))
-      names(baseline_x) <- names_data[x]
-      baseline_y <- as.data.frame(t(apply(as.matrix(data[,y]), 2, median)))
-      names(baseline_y) <- names_data[y]
+      # normalize
+      v <- colMeans(data[, c(x,y)])
+
+      v_w <- v * directional_vector[["relative_importance"]]
+
+      # noralize
+      L2_nrom_vector <- sqrt(sum(v_w[, c(x,y)]^2))
+      v_final <- (v_w / L2_nrom_vector) * L2_nrom_mean
+
+      # # directional vector
+      # vector_gx <- as.data.frame(t(v_final[,x]))
+      # names(vector_gx) <- names_data[x]
+      # vector_gx <- -vector_gx
+      # vector_gy <- as.data.frame(t(v_final[,y]))
+      # names(vector_gy) <- names_data[y]
+      # end new
+
+      # baseline_x <- as.data.frame(t(apply(as.matrix(data[,x]), 2, median)))
+      # names(baseline_x) <- names_data[x]
+      # baseline_y <- as.data.frame(t(apply(as.matrix(data[,y]), 2, median)))
+      # names(baseline_y) <- names_data[y]
 
     } else if (directional_vector[["baseline"]] == "self") {
-
+      stop("Not available.")
       baseline_x <- (data[,x])
       names(baseline_x) <- names_data[x]
       baseline_y <- (data[,y])
       names(baseline_y) <- names_data[y]
 
     } else if (directional_vector[["baseline"]] == "ones") {
-
+      stop("Not available.")
       baseline_x <- as.data.frame(t(rep(1, NCOL(data[,x]))))
       names(baseline_x) <- names_data[x]
       baseline_y <- as.data.frame(t(rep(1, NCOL(data[,y]))))
@@ -179,18 +234,159 @@ PEAXAI_targets <- function (
 
     }
 
-    # directional vector
-    vector_gx <- as.data.frame(-(score_imp_x * baseline_x))
-    names(vector_gx) <- names_data[x]
+    # # directional vector
+    # vector_gx <- as.data.frame(-(score_imp_x * baseline_x))
+    # names(vector_gx) <- names_data[x]
+    #
+    # vector_gy <- as.data.frame(score_imp_y * baseline_y)
+    # names(vector_gy) <- names_data[y]
 
-    vector_gy <- as.data.frame(score_imp_y * baseline_y)
+    # directional vector
+    if (!is.null(nrow(v_final)) && nrow(v_final) > 1) {
+      v_final <- t(v_final)
+    }
+
+    if (is.null(dim(v_final))) {
+      v_final <- as.data.frame(t(v_final))
+    } else {
+      v_final <- as.data.frame(v_final)
+    }
+
+    # directional vector
+    vector_gx <- v_final[, x, drop = FALSE]
+    names(vector_gx) <- names_data[x]
+    vector_gx <- -vector_gx
+
+    vector_gy <- v_final[, y, drop = FALSE]
     names(vector_gy) <- names_data[y]
 
-  }
+  } else {
+
+    if (!is.null(nrow(directional_vector[["relative_importance"]])) && nrow(directional_vector[["relative_importance"]]) != nrow(data)) {
+      stop("Error: The number of rows in relative_importance must be 1 (global) or equal to the number of DMUs in data (local).")
+    }
+
+    if (isTRUE(sign)) {
+
+      mat <- directional_vector[["relative_importance"]]
+
+      # Asegurar matriz numérica
+      mat <- as.matrix(mat)
+      storage.mode(mat) <- "numeric"
+
+      # ----------------------------
+      # Columnas x:
+      # positivos -> 0
+      # negativos -> se quedan igual
+      # ----------------------------
+      tmp_x <- mat[, x, drop = FALSE]
+      tmp_x[!is.na(tmp_x) & tmp_x > 0] <- 0
+      mat[, x] <- tmp_x
+
+      # ----------------------------
+      # Columnas y:
+      # positivos -> 0
+      # negativos -> positivos
+      # ----------------------------
+      tmp_y <- mat[, y, drop = FALSE]
+      tmp_y[!is.na(tmp_y) & tmp_y > 0] <- 0
+      tmp_y[!is.na(tmp_y) & tmp_y < 0] <- abs(tmp_y[!is.na(tmp_y) & tmp_y < 0])
+      mat[, y] <- tmp_y
+
+      # ----------------------------
+      # Normalizar por fila
+      # ----------------------------
+      row_totals <- rowSums(abs(mat), na.rm = TRUE)
+
+      mat_rescaled <- mat
+      idx <- row_totals > 0
+
+      mat_rescaled[idx, ] <- mat[idx, , drop = FALSE] / row_totals[idx]
+
+      directional_vector[["relative_importance"]] <- mat_rescaled
+    }
+
+    # normalize
+    if (directional_vector[["baseline"]] == "mean") {
+
+      L2_nrom_mean <- sqrt(sum(colMeans(data[, c(x,y)])^2))
+
+      # normalize
+      v <- (data[, c(x,y)]/sqrt(rowSums(data[, c(x,y)]^2)))*L2_nrom_mean
+
+      v_w <- v * directional_vector[["relative_importance"]]
+
+      # normalize
+      L2_nrom_vector <- sqrt(rowSums(v_w[, c(x,y)]^2))
+      v_final <- (v_w / L2_nrom_vector) * L2_nrom_mean
+
+
+    } else if (directional_vector[["baseline"]] == "self") {
+
+      L2_nrom_self <- sqrt(sum(data[, c(x,y)]^2))
+
+      # normalize
+      w <- directional_vector[["relative_importance"]]
+      w <- w * data[, c(x,y)]
+      L2_nrom_w <- sqrt(rowSums(w^2))
+
+      w_nrom <- w/L2_nrom_w
+      sqrt(rowSums(w_nrom^2))
+
+      v_final <- w_nrom*L2_nrom_self
+
+      # # directional vector
+      # vector_gx <- as.data.frame(v_final[,x])
+      # names(vector_gx) <- names_data[x]
+      # vector_gy <- as.data.frame(v_final[,y])
+      # names(vector_gy) <- names_data[y]
+
+    } else if (directional_vector[["baseline"]] == "ones") {
+
+        L2_nrom_one <- sqrt(sum(rep(1, length(c(x,y)))^2))
+
+        # normalize
+        w <- directional_vector[["relative_importance"]]
+        L2_nrom_w <- sqrt(rowSums(directional_vector[["relative_importance"]]^2))
+
+        w_nrom <- w/L2_nrom_w
+        sqrt(rowSums(w_nrom^2))
+
+        v_final <- w_nrom*L2_nrom_one
+
+        # # directional vector
+        # vector_gx <- as.data.frame(v_final[,x])
+        # names(vector_gx) <- names_data[x]
+        #
+        # vector_gy <- as.data.frame(v_final[,y])
+        # names(vector_gy) <- names_data[y]
+
+    }
+
+    # directional vector
+    vector_gx <- as.data.frame(v_final[, x, drop = FALSE])
+    names(vector_gx) <- names_data[x]
+    vector_gx[is.na(vector_gx)] <- 0
+
+    if (sign == FALSE) {
+      vector_gx <- -vector_gx
+    }
+
+    vector_gy <- as.data.frame(v_final[, y, drop = FALSE])
+    names(vector_gy) <- names_data[y]
+    vector_gy[is.na(vector_gy)] <- 0
+
+    if (sign == FALSE) {
+      vector_gy <- abs(vector_gy)
+    }
+
+  } # end local directional vector
+
 
   # ----------------------------------------------------------------------------
   # Determining the max beta  --------------------------------------------------
   # ----------------------------------------------------------------------------
+
   # find the first approximation of max beta for max(efficiency_thresholds)
   find_beta_maxmin <- find_beta_maxmin(
     data = data,
@@ -271,7 +467,7 @@ PEAXAI_targets <- function (
         # Nombrar las columnas como en data original
         names(changes) <- names(data)
 
-        if(directional_vector[["baseline"]] != "self") {
+        if(directional_vector[["baseline"]] != "self" & is_global) {
 
           change_x <- matrix(
             data = rep(as.numeric(vector_gx), each = nrow(changes)),
@@ -307,67 +503,112 @@ PEAXAI_targets <- function (
 
         while (!found_cut_off) {
 
+#           iter_count <- iter_count + 1
+#
+#           # matrix to apply changes
+#           matrix_eff <- as.data.frame(matrix(
+#             data = NA,
+#             ncol = length(variables),
+#             nrow = length(range_beta)
+#           ))
+#           names(matrix_eff) <- names(data)
+#
+#           # Asignar valores para 'x' y 'y'
+#           matrix_eff[, x] <- data[i,x]
+#           matrix_eff[, x] <- sweep(change_x, 1, range_beta, "*") + matrix_eff[, x]
+#
+#           matrix_eff[, y] <- data[i, y]
+#           matrix_eff[, y] <- sweep(change_y, 1, range_beta, "*") + matrix_eff[, y]
+#
+#           # know if there are not possible values
+#           mx <- as.matrix(matrix_eff[, x, drop = FALSE])
+#           min_x_possible_vector <- as.numeric(min_x_possible*min_x)
+#
+#           my <- as.matrix(matrix_eff[, y, drop = FALSE])
+#           max_y_possible_vector <- as.numeric(max_y_possible*max_y)
+#
+#           # sums how many TRUE lines are violating the restriction
+#           viol <- rowSums(mx < rep(min_x_possible_vector, each = nrow(mx))) > 0
+#           idx_viol_x <- which(viol)
+#           viol <- rowSums(my > rep(max_y_possible_vector, each = nrow(my))) > 0
+#           idx_viol_y <- which(viol)
+#
+#           viol <- rep(FALSE, nrow(mx))
+#           viol[idx_viol_x] <- TRUE
+#           viol[idx_viol_y] <- TRUE
+#
+#           keep <- !viol
+#           if (any(!keep)) {
+#             matrix_eff <- matrix_eff[keep, , drop = FALSE]
+#             range_beta <- range_beta[keep, , drop = FALSE]
+#           }
+# browser()
+#           # probability for each row
+#           eff_vector <- apply(matrix_eff, 1, function(row) {
+#
+#             row_df <- as.data.frame(t(row))
+#             colnames(row_df) <- names(data)
+#
+#             # pred <- unlist(predict(final_model, row_df, type = "prob")[1])
+#             pred <- PEAXAI_predict(
+#               data = matrix_eff,
+#               x = x,
+#               y = y,
+#               final_model = final_model,
+#               calibration_model = calibration_model
+#             )
+#
+#             return(pred)
+#
+#           })
+          #
+          # # # Ensures that each position is at least the maximum value observed up to that point
+          # eff_vector <- cummax(eff_vector)
+
           iter_count <- iter_count + 1
+          # 1. Asegurar que range_beta es un vector simple (evita problemas de dimensiones)
+          rb_vec <- as.numeric(range_beta)
+          n_current <- length(rb_vec)
+          # 2. Operaciones matriciales puras para los cambios
+          # Multiplicamos la matriz de direcciones por el vector de betas
+          matrix_eff_x <- change_x * rb_vec +
+            matrix(as.numeric(data[i, x]), nrow = n_current, ncol = length(x), byrow = TRUE)
 
-          # matrix to apply changes
-          matrix_eff <- as.data.frame(matrix(
-            data = NA,
-            ncol = length(variables),
-            nrow = length(range_beta)
-          ))
-          names(matrix_eff) <- names(data)
+          matrix_eff_y <- change_y * rb_vec +
+            matrix(as.numeric(data[i, y]), nrow = n_current, ncol = length(y), byrow = TRUE)
+          # 3. Construcción de un data.frame completamente limpio ("matrix-free")
+          # El lapply asegura que toda la "basura" de las matrices (nmatrix.1) desaparezca
+          matrix_eff <- as.data.frame(cbind(matrix_eff_x, matrix_eff_y))
+          matrix_eff[] <- lapply(matrix_eff, as.numeric)
+          names(matrix_eff) <- names(data)[c(x, y)]
 
-          # Asignar valores para 'x' y 'y'
-          matrix_eff[, x] <- data[i,x]
-          matrix_eff[, x] <- sweep(change_x, 1, range_beta, "*") + matrix_eff[, x]
+          # 4. Restricciones de dominio
+          min_x_possible_vector <- as.numeric(min_x_possible * min_x)
+          max_y_possible_vector <- as.numeric(max_y_possible * max_y)
+          viol_x <- rowSums(sweep(matrix_eff_x, 2, min_x_possible_vector, "<")) > 0
+          viol_y <- rowSums(sweep(matrix_eff_y, 2, max_y_possible_vector, ">")) > 0
 
-          matrix_eff[, y] <- data[i, y]
-          matrix_eff[, y] <- sweep(change_y, 1, range_beta, "*") + matrix_eff[, y]
-
-          # know if there are not possible values
-          mx <- as.matrix(matrix_eff[, x, drop = FALSE])
-          min_x_possible_vector <- as.numeric(min_x_possible*min_x)
-
-          my <- as.matrix(matrix_eff[, y, drop = FALSE])
-          max_y_possible_vector <- as.numeric(max_y_possible*max_y)
-
-
-          # sums how many TRUE lines are violating the restriction
-          viol <- rowSums(mx < rep(min_x_possible_vector, each = nrow(mx))) > 0
-          idx_viol_x <- which(viol)
-          viol <- rowSums(my > rep(max_y_possible_vector, each = nrow(my))) > 0
-          idx_viol_y <- which(viol)
-
-          viol <- rep(FALSE, nrow(mx))
-          viol[idx_viol_x] <- TRUE
-          viol[idx_viol_y] <- TRUE
-
-          keep <- !viol
+          keep <- !(viol_x | viol_y)
           if (any(!keep)) {
             matrix_eff <- matrix_eff[keep, , drop = FALSE]
-            range_beta <- range_beta[keep, , drop = FALSE]
+            rb_vec <- rb_vec[keep]
+            range_beta <- as.matrix(rb_vec) # Mantener el formato matriz (n_grid x 1) por seguridad
           }
-
-          # probability for each row
-          eff_vector <- apply(matrix_eff, 1, function(row) {
-
-            row_df <- as.data.frame(t(row))
-            colnames(row_df) <- names(data)
-
-            # pred <- unlist(predict(final_model, row_df, type = "prob")[1])
-            pred <- PEAXAI_predict(
-              data = row_df,
+          if (nrow(matrix_eff) == 0) {
+            # Si todos los puntos se salen del dominio, vector vacío
+            eff_vector <- numeric(0)
+          } else {
+            # 5. Predicción vectorizada ultrarrápida
+            eff_vector <- PEAXAI_predict(
+              data = matrix_eff,
               x = x,
               y = y,
               final_model = final_model,
               calibration_model = calibration_model
             )
+          }
 
-            return(pred)
-
-          })
-
-          # # Ensures that each position is at least the maximum value observed up to that point
+          # Ensures that each position is at least the maximum value observed up to that point
           eff_vector <- cummax(eff_vector)
 
           # no changes case: min == max?
@@ -503,7 +744,7 @@ PEAXAI_targets <- function (
 #' @description
 #' Estimates, for each observation, the minimum and maximum feasible values of the
 #' directional distance parameter \eqn{\beta} used in projection-based efficiency
-#' analysis. This function is an internal step of \code{\link{PEAXAI_targets}},
+#' analysis. This function is an internal step of \code{\link{PEAXAI_counterfactuals}},
 #' providing the initial search bounds for the iterative determination of efficiency targets.
 #'
 #' @param data A \code{data.frame} or \code{matrix} containing input and output variables.
@@ -527,7 +768,7 @@ PEAXAI_targets <- function (
 #' direction until the predicted probability of efficiency (from \code{final_model})
 #' reaches the maximum in \code{efficiency_thresholds} or feasible domain limits.
 #' The resulting interval \eqn{[\beta_{\min}, \beta_{\max}]} is then used by
-#' \code{\link{PEAXAI_targets}} to refine projections via grid search.
+#' \code{\link{PEAXAI_counterfactuals}} to refine projections via grid search.
 #'
 #' @return
 #' A \code{data.frame} with two numeric columns:
@@ -537,7 +778,7 @@ PEAXAI_targets <- function (
 #' }
 #'
 #' @seealso
-#' \code{\link{PEAXAI_targets}} (efficiency projections based on \eqn{\beta});
+#' \code{\link{PEAXAI_counterfactuals}} (efficiency projections based on \eqn{\beta});
 #' \code{\link[caret]{train}} (model training with class probabilities).
 #'
 #' @export
@@ -593,6 +834,8 @@ find_beta_maxmin <- function(
       max_y_i <- as.data.frame(t(as.matrix(max_y_i)))
       names(max_y_i) <- names_data[y]
 
+      manifold_check <- FALSE
+
       beta_j <- 0
 
       betas[i,1] <- NA
@@ -615,6 +858,41 @@ find_beta_maxmin <- function(
         names(new_point) <- names(data[,variables])
 
         # prediction_j <- predict(final_model, new_point, type = "prob")[1]
+
+        # ### new
+        # library(dbscan)
+        #
+        # # domain data
+        # manifold <- as.matrix(data[,c(x,y)])
+        #
+        # # 3. Combinar para calcular
+        # data_plus_new_unit <- rbind(manifold, new_point)
+        #
+        # # 4. Calcular LOF (k debe ser similar al número de vecinos que esperarías)
+        # lof_scores <- lof(data_plus_new_unit, minPts = length(c(x,y))*2)
+        # if (tail(lof_scores, 1) > lof_scores[i] & lof_scores[i] > 2) {
+        #   manifold_check <- TRUE
+        # }
+        # ###
+
+        # ###
+        # # domain data
+        # manifold <- as.matrix(data[,c(x,y)])
+        # # daisy() maneja automáticamente variables numéricas y categóricas
+        # distances <- daisy(rbind(manifold, new_point), metric = "gower")
+        #
+        # # Convertimos a matriz y extraemos la última fila (nuestra distancia con el resto)
+        # dist_matrix <- as.matrix(distances)
+        # dist_cf <- dist_matrix[nrow(dist_matrix), 1:(nrow(dist_matrix)-1)]
+        #
+        # # El vecino más cercano según Gower
+        # min_gower <- min(dist_cf)
+        #
+        # if (min_gower > 0.15) {
+        #   manifold_check <- TRUE
+        # }
+        # ###
+
         prediction_j <- PEAXAI_predict(
           data = new_point,
           x = x,
@@ -643,17 +921,16 @@ find_beta_maxmin <- function(
           betas[i, 2] <- beta_j
           control_threshold <- TRUE
 
-        } else if (any(new_point[x] < min_x_i) || any(new_point[y] > max_y_i)) {
+        } else if (any(new_point[x] < min_x_i) || any(new_point[y] > max_y_i) || manifold_check == TRUE) {
           # break the while loop
           betas[i, 2] <- beta_j
           control_threshold <- TRUE
         }
 
-
       }
 
       if (is.na(betas[i,1])) {
-        betas[i, 1] <- beta_j - n_expand
+        betas[i, 1] <- 0
       }
 
     }

@@ -1,7 +1,7 @@
 Package: PEAXAI
 Title: Probabilistic Efficiency Analysis Using Explainable Artificial
         Intelligence
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: 
   c(
     person(given = "Ricardo",
@@ -44,15 +44,15 @@ Encoding: UTF-8
 Language: en
 RoxygenNote: 7.3.2
 Depends: R (>= 3.5)
-Imports: Benchmarking, caret, deaR, dplyr, fastshap, iml, PRROC, pROC,
-        rminer, stats, rms, isotone
-Suggests: ggplot2, knitr, rmarkdown, nnet
+Imports: Benchmarking, caret, deaR, dplyr, kernelshap, iml, isotone,
+        lime, np, PRROC, pROC, rminer, rms, stats
+Suggests: ggplot2, knitr, rmarkdown
 VignetteBuilder: knitr
 LazyData: false
 ByteCompile: true
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2025-12-29 14:53:00 UTC; Ricardo
+Packaged: 2026-05-19 10:00:50 UTC; Ricardo
 Author: Ricardo González Moyano [cre, aut] (ORCID:
     <https://orcid.org/0009-0002-8608-5545>),
   Juan Aparicio [aut] (ORCID: <https://orcid.org/0000-0002-0867-0004>),
@@ -60,4 +60,4 @@ Author: Ricardo González Moyano [cre, aut] (ORCID:
   Víctor España [aut] (ORCID: <https://orcid.org/0000-0002-1807-6180>)
 Maintainer: Ricardo González Moyano <ricardo.gonzalezm@umh.es>
 Repository: CRAN
-Date/Publication: 2026-01-07 20:00:07 UTC
+Date/Publication: 2026-05-19 10:40:02 UTC

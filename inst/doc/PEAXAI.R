@@ -61,7 +61,7 @@ trControl <- list(
 )
 
 ## -----------------------------------------------------------------------------
-metric_priority <- c("Balanced_Accuracy", "Precision")
+metric_priority <- c("Balanced_Accuracy", "F1", "ROC_AUC")
 
 ## -----------------------------------------------------------------------------
 hold_out <- NULL
@@ -79,7 +79,6 @@ models <- PEAXAI_fitting(
   methods = methods,
   trControl = trControl,
   metric_priority = metric_priority,
-  calibration_method = NULL,
   hold_out = hold_out,
   verbose = TRUE,
   seed = seed
@@ -99,12 +98,11 @@ importance_method <- list(
 
 ## -----------------------------------------------------------------------------
 relative_importance <- PEAXAI_global_importance(
-  data = data,
+  final_model = models[["best_model_fit"]][["nnet"]],
   x = x,
   y = y,
-  final_model = models[["best_model_fit"]][["nnet"]],
-  background = "train",
-  target = "train",
+  explain_data = data,
+  reference_data = data,
   importance_method = importance_method
 )
 
@@ -127,21 +125,20 @@ relative_importance_custom
 ## -----------------------------------------------------------------------------
 directional_vector <- list(
   relative_importance = relative_importance,
-  scope = "global",
   baseline  = "mean"        
 )
 
 ## -----------------------------------------------------------------------------
-targets <- PEAXAI_targets(
+targets <- PEAXAI_counterfactuals(
   data = data,
   x = x,
   y = y,
   final_model = models[["best_model_fit"]][["nnet"]],
   efficiency_thresholds = efficiency_thresholds,
   directional_vector = directional_vector,
-  n_expand = 0.5,
+  n_expand = 0.25,
   n_grid = 50,
-  max_y = 2,
+  max_y = 1,
   min_x = 1
 )
 

@@ -2,16 +2,16 @@
 % Please edit documentation in R/convex_facets.R
 \name{convex_facets}
 \alias{convex_facets}
-\title{Create New SMOTE Units to Balance Data combinations of m + s}
+\title{Identify Maximal Facets of the Convex Frontier}
 \usage{
-convex_facets(data, x, y, RTS = "vrs", balance_data = NULL)
+convex_facets(data, x, y, RTS = "vrs")
 }
 \arguments{
-\item{data}{A \code{data.frame} containing the variables used in the model.}
+\item{data}{A \code{data.frame} or \code{matrix} containing the variables used in the model.}
 
-\item{x}{Column indexes of the input variables in the \code{data}.}
+\item{x}{Integer vector indicating the column indexes of the input variables in \code{data}.}
 
-\item{y}{Column indexes of the output variables in the \code{data}.}
+\item{y}{Integer vector indicating the column indexes of the output variables in \code{data}.}
 
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
@@ -23,12 +23,13 @@ returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
 \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
-
-\item{balance_data}{A numeric vector indicating the different levels of balance required (e.g., c(0.1, 0.45, 0.6)).}
 }
 \value{
-It returns a \code{data.frame} with the newly created set of DMUs incorporated.
+A \code{matrix} where each row represents a maximal facet, and the values are the row indices of the efficient DMUs in \code{data} that form that facet. Returns an empty \code{matrix} if there are no efficient units.
 }
 \description{
-This function creates new DMUs to address data imbalances. If the majority class is efficient, it generates new inefficient DMUs by worsering the observed units. Conversely, if the majority class is inefficient, it projects inefficient DMUs to the frontier. Finally, a random selection if performed to keep a proportion of 0.65 for the majority class and 0.35 for the minority class.
+Identifies the maximal subsets of efficient Decision-Making Units (DMUs)
+that lie on the same face (facet) of the efficient frontier. It relies on
+the concept of "maximal friends" to determine which efficient units can
+be grouped together to form convex combinations under the chosen returns-to-scale assumption.
 }

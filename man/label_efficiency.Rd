@@ -4,7 +4,20 @@
 \alias{label_efficiency}
 \title{Data preprocessing and efficiency labeling with Additive DEA}
 \usage{
-label_efficiency(data, REF = data, x, y, RTS = "vrs")
+label_efficiency(
+  data,
+  REF = data,
+  x,
+  y,
+  z_numeric = NULL,
+  z_factor = NULL,
+  RTS = "vrs",
+  B = 1,
+  alpha = FALSE,
+  m = NULL,
+  bandwidth = NULL,
+  seed
+)
 }
 \arguments{
 \item{data}{A \code{data.frame} or \code{matrix} containing all variables.}
@@ -17,6 +30,10 @@ the same number of rows as \code{data}.}
 
 \item{y}{Integer vector with column indices of output variables in \code{data}.}
 
+\item{z_numeric}{Integer vector with column indices of continuous/numeric exogenous variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of discrete/factor exogenous variables in \code{data}. By default is \code{NULL}.}
+
 \item{RTS}{Character or integer specifying the DEA technology / returns-to-scale
 assumption (default: \code{"vrs"}). Accepted values:
 \describe{
@@ -27,6 +44,16 @@ assumption (default: \code{"vrs"}). Accepted values:
 \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling only, convexity + free disposability).}
 \item{\code{5} / \code{"add"}}{Additivity (integer up/down scaling) with free disposability.}
 }}
+
+\item{B}{Integer. The number of bootstrap replicates (iterations) in the conditional DEA framework.}
+
+\item{alpha}{Numeric. The nominal size of the confidence interval (e.g., \code{0.05}). If \code{FALSE}, no confidence intervals are computed.}
+
+\item{m}{Integer. The number of units to be drawn to form the reference set in each bootstrap replicate of the conditional DEA.}
+
+\item{bandwidth}{Optionally, the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. Typical estimation is done using \code{\link[np]{npudensbw}} which supports mixed continuous and discrete data types.}
+
+\item{seed}{Integer or \code{NULL}. Seed for pseudo-random number generator ensuring reproducibility in the bootstrap sampling process.}
 }
 \value{
 A \code{data.frame} equal to \code{data} (retaining all input \code{x} and
@@ -35,20 +62,27 @@ with levels \code{c("not_efficient","efficient")}.
 }
 \description{
 Labels each DMU (Decision Making Unit) as efficient or not using the
-Additive DEA model, optionally after basic data preprocessing. The resulting
-factor \code{class_efficiency} has levels \code{c("not_efficient","efficient")},
-where \code{"efficient"} is the positive class for downstream modeling.
+Additive DEA model, optionally after basic data preprocessing. It supports both
+standard unconditional DEA and conditional DEA frameworks (when exogenous variables
+are provided). The resulting factor \code{class_efficiency} has levels
+\code{c("not_efficient","efficient")}, where \code{"efficient"} is the positive
+class for downstream modeling.
 }
 \details{
 Internally relies on \code{\link[Benchmarking]{dea.add}} to compute Additive DEA
-scores and derive the binary efficiency label.
+scores and derive the binary efficiency label. When exogenous variables \code{z_numeric}
+or \code{z_factor} are provided, a conditional DEA is performed by sampling a reference
+set of size \code{m} internally \code{B} times, based on distances computed via kernel
+density estimation.
 }
 \examples{
+\donttest{
 # Example (assuming columns 1:2 are inputs and 3 is output):
-# out <- my_fun(data = df, x = 1:2, y = 3, RTS = "vrs")
+# out <- label_efficiency(data = df, x = 1:2, y = 3, RTS = "vrs")
 # table(out$class_efficiency)
+}
 
 }
 \seealso{
-\code{\link[Benchmarking]{dea.add}}
+\code{\link[Benchmarking]{dea.add}}, \code{\link[rcDEA]{conditional_DEA}}
 }

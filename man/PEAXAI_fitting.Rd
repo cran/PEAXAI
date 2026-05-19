@@ -8,14 +8,19 @@ PEAXAI_fitting(
   data,
   x,
   y,
+  z_numeric = NULL,
+  z_factor = NULL,
   RTS = "vrs",
+  B = NULL,
+  alpha = FALSE,
+  m = NULL,
   imbalance_rate = NULL,
   trControl,
   methods,
   metric_priority = "Balanced_Accuracy",
   calibration_method = NULL,
   hold_out = NULL,
-  seed = NULL,
+  seed = 314,
   verbose = TRUE
 )
 }
@@ -25,6 +30,10 @@ PEAXAI_fitting(
 \item{x}{Integer vector with column indices of input variables in \code{data}.}
 
 \item{y}{Integer vector with column indices of output variables in \code{data}.}
+
+\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
 
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
@@ -36,6 +45,12 @@ returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
 \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
+
+\item{B}{number of bootstrap replicates in Conditional DEA.}
+
+\item{alpha}{This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.}
+
+\item{m}{number of units to be included in the reference set.}
 
 \item{imbalance_rate}{Optional target(s) for class balance via SMOTE. If \code{NULL},
 no synthetic balancing is performed.}
@@ -111,8 +126,7 @@ balancing level.
     imbalance_rate = NULL,
     methods = methods,
     trControl = trControl,
-    metric_priority = c("Balanced_Accuracy", "Precision"),
-    calibration_method = "platt",
+    metric_priority = c("Balanced_Accuracy", "F1", "ROC_AUC"),
     seed = 1,
     verbose = FALSE
   )

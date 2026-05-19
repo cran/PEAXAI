@@ -25,17 +25,12 @@ SMOTE_data <- function (
     data, x, y, RTS = "vrs", balance_data, seed
 ) {
 
-  # data <- data[, c(x,y)]
-  # x <- 1:(ncol(data) - length(y))
-  # y <- (length(x) + 1):ncol(data)
-
   # first, determine the efficient facets
   facets <- convex_facets(
     data = data,
     x = x,
     y = y,
-    RTS = RTS,
-    balance_data = balance_data
+    RTS = RTS
   )
 
   # second, populate the efficient facets

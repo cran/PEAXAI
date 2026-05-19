@@ -2,9 +2,11 @@
 #'
 #' @description
 #' Labels each DMU (Decision Making Unit) as efficient or not using the
-#' Additive DEA model, optionally after basic data preprocessing. The resulting
-#' factor \code{class_efficiency} has levels \code{c("not_efficient","efficient")},
-#' where \code{"efficient"} is the positive class for downstream modeling.
+#' Additive DEA model, optionally after basic data preprocessing. It supports both
+#' standard unconditional DEA and conditional DEA frameworks (when exogenous variables
+#' are provided). The resulting factor \code{class_efficiency} has levels
+#' \code{c("not_efficient","efficient")}, where \code{"efficient"} is the positive
+#' class for downstream modeling.
 #'
 #' @param data A \code{data.frame} or \code{matrix} containing all variables.
 #' @param REF Optional reference set of inputs that defines the technology
@@ -12,6 +14,8 @@
 #'   the same number of rows as \code{data}.
 #' @param x Integer vector with column indices of input variables in \code{data}.
 #' @param y Integer vector with column indices of output variables in \code{data}.
+#' @param z_numeric Integer vector with column indices of continuous/numeric exogenous variables in \code{data}. By default is \code{NULL}.
+#' @param z_factor Integer vector with column indices of discrete/factor exogenous variables in \code{data}. By default is \code{NULL}.
 #' @param RTS Character or integer specifying the DEA technology / returns-to-scale
 #'   assumption (default: \code{"vrs"}). Accepted values:
 #'   \describe{
@@ -22,29 +26,41 @@
 #'     \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling only, convexity + free disposability).}
 #'     \item{\code{5} / \code{"add"}}{Additivity (integer up/down scaling) with free disposability.}
 #'   }
+#' @param B Integer. The number of bootstrap replicates (iterations) in the conditional DEA framework.
+#' @param alpha Numeric. The nominal size of the confidence interval (e.g., \code{0.05}). If \code{FALSE}, no confidence intervals are computed.
+#' @param m Integer. The number of units to be drawn to form the reference set in each bootstrap replicate of the conditional DEA.
+#' @param bandwidth Optionally, the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. Typical estimation is done using \code{\link[np]{npudensbw}} which supports mixed continuous and discrete data types.
+#' @param seed Integer or \code{NULL}. Seed for pseudo-random number generator ensuring reproducibility in the bootstrap sampling process.
 #'
 #' @details
 #' Internally relies on \code{\link[Benchmarking]{dea.add}} to compute Additive DEA
-#' scores and derive the binary efficiency label.
+#' scores and derive the binary efficiency label. When exogenous variables \code{z_numeric}
+#' or \code{z_factor} are provided, a conditional DEA is performed by sampling a reference
+#' set of size \code{m} internally \code{B} times, based on distances computed via kernel
+#' density estimation.
 #'
 #' @importFrom Benchmarking dea.add
+#' @importFrom np npudensbw npudens
 #'
 #' @return
 #' A \code{data.frame} equal to \code{data} (retaining all input \code{x} and
 #' output \code{y} columns) plus a new factor column \code{class_efficiency}
 #' with levels \code{c("not_efficient","efficient")}.
 #'
-#' @seealso \code{\link[Benchmarking]{dea.add}}
+#' @seealso \code{\link[Benchmarking]{dea.add}}, \code{\link[rcDEA]{conditional_DEA}}
 #'
 #' @examples
+#' \donttest{
 #' # Example (assuming columns 1:2 are inputs and 3 is output):
-#' # out <- my_fun(data = df, x = 1:2, y = 3, RTS = "vrs")
+#' # out <- label_efficiency(data = df, x = 1:2, y = 3, RTS = "vrs")
 #' # table(out$class_efficiency)
+#' }
 #'
 #' @export
 
 label_efficiency <- function (
-    data, REF = data, x, y, RTS = "vrs"
+    data, REF = data, x, y, z_numeric = NULL, z_factor = NULL, RTS = "vrs",
+    B = 1, alpha = FALSE, m = NULL, bandwidth = NULL, seed
   ) {
 
   # check if parameters are well introduced
@@ -55,34 +71,211 @@ label_efficiency <- function (
     RTS = RTS
   )
 
-  # benchmarking to calculate additive-DEA
-  add_scores <- dea.add(
-    X = as.matrix(data[,x]),
-    Y = as.matrix(data[,y]),
-    XREF = as.matrix(REF[,x]),
-    YREF = as.matrix(REF[,y]),
-    RTS = RTS
-  )[["sum"]]
+  if (is.null(z_numeric) & is.null(z_factor)) {
 
-  # determine efficient and inefficient DMUs
-  class_efficiency <- ifelse(add_scores <= 0.0001, 1, 0)
+    #
+    tol = 1e-9
+    X <- as.matrix(data[,x])
+    Y <- as.matrix(data[,y])
 
-  # add new varaible
-  data <- as.data.frame (
-    cbind(data, class_efficiency)
-  )
+    Z <- cbind(-X, Y)
+    n <- nrow(Z)
 
-  # labels
-  data$class_efficiency <- ifelse(
-    data$class_efficiency == 1, "efficient", "not_efficient")
+    pareto <- rep(TRUE, n)
 
-  # create the 'class_efficiency' in a factor
-  data$class_efficiency <- factor(data$class_efficiency)
+    for (k in seq_len(n)) {
+      # En Z = [-X, Y], dominar significa ser >= componente a componente
+      weak_dom <- rowSums(Z >= matrix(Z[k, ], n, ncol(Z), byrow = TRUE) - tol) == ncol(Z)
+      strict_dom <- rowSums(Z > matrix(Z[k, ], n, ncol(Z), byrow = TRUE) + tol) > 0
 
-  # order of levels
-  data$class_efficiency <- factor(
-    data$class_efficiency,
-    levels = c("efficient", "not_efficient"))
+      pareto[k] <- !any(weak_dom & strict_dom)
+    }
+
+    pareto
+    #
+    # the additive DEA
+
+    # benchmarking to calculate additive-DEA
+    add_scores <- dea.add(
+      X = as.matrix(data[,x]),
+      Y = as.matrix(data[,y]),
+      XREF = as.matrix(REF[pareto,x]),
+      YREF = as.matrix(REF[pareto,y]),
+      RTS = RTS
+    )[["sum"]]
+
+    # determine efficient and inefficient DMUs
+    class_efficiency <- ifelse(add_scores <= 0.0001, 1, 0)
+
+    # add new varaible
+    data <- as.data.frame (
+      cbind(data, class_efficiency)
+    )
+
+    # labels
+    data$class_efficiency <- ifelse(
+      data$class_efficiency == 1, "efficient", "not_efficient")
+
+    # create the 'class_efficiency' in a factor
+    # order of levels
+    data$class_efficiency <- factor(
+      data$class_efficiency,
+      levels = c("efficient", "not_efficient"))
+
+  } else {
+
+    # conditional DEA
+
+    # define preliminary variables:
+    n <- nrow(data) # number of observations
+    k <- NCOL(data[,c(y)]) # number of outputs
+    s <- NCOL(data[,c(x)]) # number of inputs
+
+    # initialize
+    eff <- rep(0, n)
+    DEA_B <- rep(0, B) # bootstrap
+
+    if (alpha != FALSE) {
+      ci_low <- rep(0, n)
+      ci_up <- rep(0,n)
+    }
+
+    # 1 determine bandwidths
+    message(c("R is now computing the bandwidth using the function npudensbw in the package np"))
+
+    exogenous <- c(z_numeric, z_factor)
+
+    # calculate similarity matrix
+    if (is.null(bandwidth)) {
+      bw <- npudensbw(dat = data[,exogenous])
+    } else {
+      bw <- bandwidth
+    }
+
+    # 2 similarity by unit
+    message(c("R is now computing the conditional DEA"))
+
+    set.seed(seed)
+    for (i in 1:n) {
+
+      # compute the similarity for each obs i
+      kerz <- npudens(
+        bws = bw,
+        cykertype = "epanechnikov",
+        cxkertype = "epanechnikov",
+        tdat = data[i,exogenous, drop = FALSE],
+        edat = data[,exogenous, drop = FALSE])
+
+      similarity_i <- as.numeric(kerz$dens)
+      sim_target <- similarity_i[i] # Similitud de la unidad i consigo misma
+
+      # consider only the units that perform at least as good as unit i
+      y_i <- data[i, y]
+      x_i <- data[i, x]
+      Y_Rob <- data[, y]
+      X_Rob <- data[, x]
+
+      # Filtro 1: Similitud (al menos 0.01 de similitud respecto a la unidad i)
+      cond_sim <- (similarity_i / sim_target) >= 0.01
+
+      # Filtro 2: Dominancia fuerte (menor o igual input, mayor o igual output)
+      cond_output <- matrix(TRUE, nrow = nrow(Y_Rob), ncol = k)
+      for (l in 1:k) {
+        cond_output[, l] <- Y_Rob[, l] >= as.numeric(y_i[l])
+      }
+
+      cond_input <- matrix(TRUE, nrow = nrow(X_Rob), ncol = s)
+      for (l in 1:s) {
+        cond_input[, l] <- X_Rob[, l] <= as.numeric(x_i[l])
+      }
+
+      cond_dom <- apply(cond_output, 1, all) & apply(cond_input, 1, all)
+
+      # Intersección lógica: cumplen ambas condiciones a la vez
+      combined_filter <- cond_sim & cond_dom
+
+      # Aplicar ambos filtros a la vez para construir las matrices de referencia
+      Y_ref <- as.data.frame(Y_Rob[combined_filter, , drop = FALSE])
+      Y_ref <- unique(Y_ref)
+
+      X_ref <- as.data.frame(X_Rob[combined_filter, , drop = FALSE])
+      X_ref <- unique(X_ref)
+
+      n_sample <- nrow(X_ref) #(equivalent to nrow(Y_Rob))
+
+      #pick a sample of random unit in the reference set if there are at least 2 units in the ref
+      if (n_sample < 2) {
+        eff[i] <- 0
+      }
+      else {
+        for (j in 1:B) {
+
+          # REF <- cbind(X_ref, Y_ref)
+
+          # compute the DEA for unit i
+          # DEA_B[j] <- Benchmarking::dea(
+          #   X = data[i,x],
+          #   Y = data[i,y],
+          #   RTS = RTS,
+          #   ORIENTATION = "in-out",
+          #   DIRECT = TRUE,
+          #   XREF = X_ref,
+          #   YREF = Y_ref)$eff
+
+          DEA_B[j] <- dea.add(
+            X = as.matrix(data[i,x, drop = FALSE]),
+            Y = as.matrix(data[i,y, drop = FALSE]),
+            XREF = as.matrix(X_ref, drop = FALSE),
+            YREF = as.matrix(Y_ref, drop = FALSE),
+            RTS = RTS
+          )[["sum"]]
+
+          # DEA_B[j] <- tryCatch({
+          #   # Intenta ejecutar la función normalmente
+          #   dea.add(
+          #     X = as.matrix(data[i, x, drop = FALSE]),
+          #     Y = as.matrix(data[i, y, drop = FALSE]),
+          #     XREF = as.matrix(X_ref, drop = FALSE),
+          #     YREF = as.matrix(Y_ref, drop = FALSE),
+          #     RTS = RTS
+          #   )[["sum"]]
+          # }, error = function(e) {
+          #   # Si hay error, imprime el mensaje y lanza el browser
+          #   message("Se detectó un error en la iteración: ", j)
+          #   print(e)
+          #   browser()
+          #   browser()
+          # })
+        }
+
+        eff[i] <- mean(DEA_B[DEA_B != -Inf & DEA_B != Inf])
+        if (alpha != FALSE) {
+          ci_low[i] <- stats::quantile(DEA_B[DEA_B != -Inf & DEA_B != Inf], alpha/2)
+          ci_up[i] <- stats::quantile(DEA_B[DEA_B != -Inf & DEA_B != Inf], 1-alpha/2)
+        }
+
+      }
+    }
+
+    if(alpha != FALSE) {
+      save <- data.frame(eff, ci_low, ci_up)
+    }
+    else {
+      save <- data.frame(eff)
+    }
+
+    # assing efficiency
+    if (alpha != FALSE) {
+      labels <- ifelse(round(save$ci_low, 4) == 0, "efficient", "not_efficient")
+    } else {
+      labels <- ifelse(round(save$eff, 4) == 0, "efficient", "not_efficient")
+    }
+
+    data$class_efficiency <- factor(
+      labels,
+      levels = c("efficient", "not_efficient"))
+
+  }
 
   return(data)
 

@@ -5,33 +5,33 @@
 \title{Global feature importance for efficiency classifiers}
 \usage{
 PEAXAI_global_importance(
-  data,
+  final_model,
   x,
   y,
-  final_model,
-  background = "train",
-  target = "train",
-  importance_method
+  explain_data,
+  reference_data,
+  importance_method,
+  seed = 314
 )
 }
 \arguments{
-\item{data}{A \code{data.frame} (or \code{matrix}) with predictors and outcomes.
-The function will internally reorder columns to \code{c(x, y)}.}
+\item{final_model}{A fitted model. If it is a base-\code{glm} binomial, probabilities
+are obtained with \code{type = "response"}; otherwise the function expects
+\code{predict(type = "prob")} with a column named \code{"efficient"}.}
 
 \item{x}{Integer or character vector with the columns used as \strong{inputs} (predictors).}
 
 \item{y}{Integer or character vector with the columns used as \strong{outputs} (targets used
 to define \code{class_efficiency} in training; not included in \code{X} when explaining).}
 
-\item{final_model}{A fitted model. If it is a base-\code{glm} binomial, probabilities
-are obtained with \code{type = "response"}; otherwise the function expects
-\code{predict(type = "prob")} with a column named \code{"efficient"}.}
+\item{explain_data}{A \code{data.frame} with the original observed DMUs passed
+by the user to \code{PEAXAI_fitting()}. This dataset represents the real,
+non-augmented observations on which explanations can be computed.}
 
-\item{background}{Character, \code{"train"} (default) or \code{"real"}.
-Background data define the distribution used for the reference model behaviour.}
-
-\item{target}{Character, \code{"train"} (default) or \code{"real"}.
-Dataset on which importance is computed.}
+\item{reference_data}{A \code{data.frame} with the training dataset used to fit
+the optimal model returned by \code{PEAXAI_fitting()}. Depending on the class-
+balancing procedure, this dataset may contain only real observed DMUs or both
+real and synthetic DMUs.}
 
 \item{importance_method}{A named list (or data.frame-like) with the backend and its args:
 \describe{
@@ -40,9 +40,11 @@ Dataset on which importance is computed.}
 \item{\code{measures}}{(SA) e.g. \code{"AAD"}, \code{"gradient"}, \code{"variance"}, \code{"range"}.}
 \item{\code{levels}}{(SA) Discretization levels used by \code{rminer::Importance}.}
 \item{\code{baseline}}{(SA) Baseline value for SA, if applicable.}
-\item{\code{nsim}}{(SHAP) Number of Monte Carlo samples for \code{fastshap::explain}.}
+\item{\code{bg_n}}{(SHAP) Background sample size for \code{kernelshap::kernelshap} (default: 200).}
 \item{\code{n.repetitions}}{(PI) Number of permutations per feature for \code{iml::FeatureImp}.}
 }}
+
+\item{seed}{Integer. Seed for reproducibility.}
 }
 \value{
 A named numeric vector (or 1-row data.frame) of normalized importances,
@@ -53,7 +55,7 @@ Computes \strong{global feature importance} for a fitted classification model th
 separates Pareto-efficient DMUs, using one of three XAI backends:
 \itemize{
 \item \code{"SA"} — Sensitivity Analysis via \pkg{rminer}.
-\item \code{"SHAP"} — Model-agnostic SHAP approximations via \pkg{fastshap}.
+\item \code{"SHAP"} — Model-agnostic SHAP approximations via \pkg{kernelshap}.
 \item \code{"PI"} — Permutation Importance via \pkg{iml}.
 }
 You can evaluate the model on either the training domain (\code{background = "train"})
@@ -107,11 +109,26 @@ For other models (e.g., \pkg{caret}), \code{predict(type = "prob")[, "efficient"
 
   final_model <- models[["best_model_fit"]][["glm"]]
 
-  imp <- PEAXAI_global_importance(
-    data = data, x = x, y = y,
+  importance_method <- list(name = "PI", n.repetitions = 5)
+
+  relative_importance <- PEAXAI_global_importance(
     final_model = final_model,
-    background = "real", target = "real",
-    importance_method = list(name = "PI", n.repetitions = 5)
+    x = x,
+    y = y,
+    explain_data = data,
+    reference_data = final_model$trainingData,
+    importance_method = importance_method,
+    seed = 1
+  )
+
+  imp <- PEAXAI_global_importance(
+    final_model = final_model,
+    x = x,
+    y = y,
+    explain_data = data,
+    reference_data = final_model$trainingData,
+    importance_method = importance_method,
+    seed = 1
   )
 
   head(imp)
@@ -119,6 +136,6 @@ For other models (e.g., \pkg{caret}), \code{predict(type = "prob")[, "efficient"
 
 }
 \seealso{
-\code{\link[fastshap]{explain}}, \code{\link[iml]{FeatureImp}},
+\code{\link[kernelshap]{kernelshap}}, \code{\link[iml]{FeatureImp}},
 \code{\link[rminer]{Importance}}
 }
