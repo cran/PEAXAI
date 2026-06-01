@@ -1,7 +1,7 @@
 Package: PEAXAI
 Title: Probabilistic Efficiency Analysis Using Explainable Artificial
         Intelligence
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
   c(
     person(given = "Ricardo",
@@ -52,7 +52,7 @@ LazyData: false
 ByteCompile: true
 Config/testthat/edition: 3
 NeedsCompilation: no
-Packaged: 2026-05-19 10:00:50 UTC; Ricardo
+Packaged: 2026-05-25 09:44:22 UTC; Ricardo
 Author: Ricardo González Moyano [cre, aut] (ORCID:
     <https://orcid.org/0009-0002-8608-5545>),
   Juan Aparicio [aut] (ORCID: <https://orcid.org/0000-0002-0867-0004>),
@@ -60,4 +60,4 @@ Author: Ricardo González Moyano [cre, aut] (ORCID:
   Víctor España [aut] (ORCID: <https://orcid.org/0000-0002-1807-6180>)
 Maintainer: Ricardo González Moyano <ricardo.gonzalezm@umh.es>
 Repository: CRAN
-Date/Publication: 2026-05-19 10:40:02 UTC
+Date/Publication: 2026-06-01 18:20:21 UTC

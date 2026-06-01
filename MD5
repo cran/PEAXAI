@@ -1,4 +1,4 @@
-8f0edda2fb5dfaac0a9f1a362967f521 *DESCRIPTION
+e313b7d57160c889d7ef07262bf14411 *DESCRIPTION
 a7f89030cd7f48d89481668718d58792 *NAMESPACE
 1a5e36dc5a16582d58558e9ad8caf230 *R/PEAXAI_counterfactuals.R
 196e94415acd34dd316f3f70b7c4eefc *R/PEAXAI_fitting.R
@@ -10,14 +10,19 @@ de87fa67e9c4bfb3a7ad4851c011a1b3 *R/SMOTE_Z_data.R
 3f0472e51d530dd99f625d3a9f8b7fe7 *R/SMOTE_data.R
 91b64cf02c0de676ae59f73e6e771653 *R/convex_facets.R
 1342841cdb4ff8f1cdf87d9eb1ec06d0 *R/data-100-DMUs.R
+a2950540ad7d425a7594bcd36fea9bb3 *R/data-SABI.R
 a0f4e2d214a85ba00a77d0463e8b97a0 *R/data-firms.R
+ea3f7f2e5a9bb99cca5e1cbd9459b560 *R/data_example.R
 f5d41ebcdf802fa672892222067a6ab2 *R/get_SMOTE_DMUs.R
 b4cabf30aec17b88a749ff0a8c7b4f02 *R/label_efficiency.R
 7eadf7f49ed578433592582d49728c05 *R/preprocessing.R
 5727fea60d0cebc262af4744b9277cc6 *R/training.R
 da836ba3dab64764d853d9d39c680bb2 *R/xai_prepare_sets.R
+590cb7bfb4f81f96304958a87bc27d58 *README.md
 f14af8418a4ef7e597f10fda4d6766ba *build/vignette.rds
 9bd6d5ea7a3f45de82e65c699d1587cd *data/data.rda
+9b7ffb4cd92434127b57a292765b633a *data/data_SABI.rda
+0e61c512ec76c4e1798bd3e4e52bb424 *data/data_example.rda
 248d64e59761d8f41b6c10304000310f *data/firms.rda
 223274d85e44922a63dc80e30bf6462a *inst/doc/PEAXAI.R
 181ae73903645d0f1aef20be7d97cfc1 *inst/doc/PEAXAI.Rmd
@@ -33,6 +38,8 @@ aaaee7947848874d6173ce823ebb9128 *man/PEAXAI_local_importance.Rd
 c723607867ac83883c5931a1368dcde2 *man/SMOTE_data.Rd
 3c7a848384b8f6ec4cd1b378a8143e6a *man/convex_facets.Rd
 3b098122b4607c081a51a0dad2ccb2cd *man/data.Rd
+afcd70cb1cf9ce7e4bb9f7f87d598ba9 *man/data_SABI.Rd
+2be07534b85a38e90178704edd4d6a3f *man/data_example.Rd
 0754623fceb3153c9d84ee06f69aa978 *man/find_beta_maxmin.Rd
 07b65d3b7e3b2fe50a876d57d401bb9b *man/firms.Rd
 0ef2b9c68e6d9f5abe2a5797d570ee1f *man/get_SMOTE_DMUs.Rd
