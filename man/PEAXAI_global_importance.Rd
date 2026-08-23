@@ -8,6 +8,8 @@ PEAXAI_global_importance(
   final_model,
   x,
   y,
+  z_numeric = NULL,
+  z_factor = NULL,
   explain_data,
   reference_data,
   importance_method,
@@ -23,6 +25,10 @@ are obtained with \code{type = "response"}; otherwise the function expects
 
 \item{y}{Integer or character vector with the columns used as \strong{outputs} (targets used
 to define \code{class_efficiency} in training; not included in \code{X} when explaining).}
+
+\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
 
 \item{explain_data}{A \code{data.frame} with the original observed DMUs passed
 by the user to \code{PEAXAI_fitting()}. This dataset represents the real,
@@ -58,10 +64,9 @@ separates Pareto-efficient DMUs, using one of three XAI backends:
 \item \code{"SHAP"} — Model-agnostic SHAP approximations via \pkg{kernelshap}.
 \item \code{"PI"} — Permutation Importance via \pkg{iml}.
 }
-You can evaluate the model on either the training domain (\code{background = "train"})
-or the real-world domain (\code{background = "real"}) and compute importance on a
-chosen \code{target} set (\code{"train"} or \code{"real"}). Importances are
-returned normalized to sum to 1.
+Importance is computed on the DMUs supplied in \code{explain_data}, using
+\code{reference_data} (typically \code{final_model$trainingData}) as the reference
+distribution. Importances are returned normalized to sum to 1.
 }
 \details{
 Internally, the function builds background/target sets with \code{xai_prepare_sets()}.
@@ -73,6 +78,7 @@ For other models (e.g., \pkg{caret}), \code{predict(type = "prob")[, "efficient"
 \donttest{
   data("firms", package = "PEAXAI")
 
+  # Firms of the Valencian Community: four inputs and one output
   data <- subset(
     firms,
     autonomous_community == "Comunidad Valenciana"
@@ -80,58 +86,38 @@ For other models (e.g., \pkg{caret}), \code{predict(type = "prob")[, "efficient"
 
   x <- 1:4
   y <- 5
-  RTS <- "vrs"
-  imbalance_rate <- NULL
-
-  trControl <- list(
-    method = "cv",
-    number = 3
-  )
-
-  # glm method
-  methods <- list(
-    "glm" = list(
-      weights = "dinamic"
-     )
-   )
-
-  metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
 
   models <- PEAXAI_fitting(
-    data = data, x = x, y = y, RTS = RTS,
-    imbalance_rate = imbalance_rate,
-    methods = methods,
-    trControl = trControl,
-    metric_priority = metric_priority,
-    seed = 1,
-    verbose = FALSE
+    data            = data,
+    x               = x,
+    y               = y,
+    RTS             = "vrs",
+    imbalance_rate  = NULL,
+    methods         = list("glm" = list(weights = "dinamic")),
+    trControl       = list(method = "cv", number = 3),
+    metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+    seed            = 1,
+    verbose         = FALSE
   )
 
   final_model <- models[["best_model_fit"]][["glm"]]
 
+  # Permutation importance (iml). Use list(name = "SHAP", bg_n = 50) for
+  # kernelshap, or list(name = "SA", method = "1D-SA") for rminer.
   importance_method <- list(name = "PI", n.repetitions = 5)
 
   relative_importance <- PEAXAI_global_importance(
-    final_model = final_model,
-    x = x,
-    y = y,
-    explain_data = data,
-    reference_data = final_model$trainingData,
+    final_model       = final_model,
+    x                 = x,
+    y                 = y,
+    explain_data      = data,
+    reference_data    = final_model$trainingData,
     importance_method = importance_method,
-    seed = 1
+    seed              = 1
   )
 
-  imp <- PEAXAI_global_importance(
-    final_model = final_model,
-    x = x,
-    y = y,
-    explain_data = data,
-    reference_data = final_model$trainingData,
-    importance_method = importance_method,
-    seed = 1
-  )
-
-  head(imp)
+  # One normalized weight per input and output; they add up to 1
+  relative_importance
 }
 
 }

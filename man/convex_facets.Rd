@@ -4,7 +4,7 @@
 \alias{convex_facets}
 \title{Identify Maximal Facets of the Convex Frontier}
 \usage{
-convex_facets(data, x, y, RTS = "vrs")
+convex_facets(data, x, y, RTS = "vrs", verbose)
 }
 \arguments{
 \item{data}{A \code{data.frame} or \code{matrix} containing the variables used in the model.}
@@ -16,13 +16,11 @@ convex_facets(data, x, y, RTS = "vrs")
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \describe{
-\item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-\item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-\item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-\item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
+
+\item{verbose}{Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).}
 }
 \value{
 A \code{matrix} where each row represents a maximal facet, and the values are the row indices of the efficient DMUs in \code{data} that form that facet. Returns an empty \code{matrix} if there are no efficient units.

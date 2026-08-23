@@ -86,3 +86,4 @@ density estimation.
 \seealso{
 \code{\link[Benchmarking]{dea.add}}, \code{\link[rcDEA]{conditional_DEA}}
 }
+\keyword{internal}

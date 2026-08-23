@@ -6,14 +6,15 @@
 \usage{
 get_SMOTE_DMUs(
   data,
-  facets,
+  facets = NULL,
   x,
   y,
+  RTS = "vrs",
+  balance_data = NULL,
+  SMOTE_DDF = FALSE,
   z_numeric = NULL,
   z_factor = NULL,
-  RTS = "vrs",
   alpha = FALSE,
-  balance_data = NULL,
   bandwidth = NULL,
   seed
 )
@@ -27,10 +28,6 @@ get_SMOTE_DMUs(
 
 \item{y}{Column indexes of the output variables in the \code{data}.}
 
-\item{z_numeric}{Column indexes of the continuous environment variables (z) in the \code{data}.}
-
-\item{z_factor}{Column indexes of the factor environment variables (z) in the \code{data}.}
-
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \describe{
@@ -42,9 +39,19 @@ returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
 
-\item{alpha}{This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.}
-
 \item{balance_data}{A numeric vector indicating the different levels of balance required (e.g., c(0.1, 0.45, 0.6)).}
+
+\item{SMOTE_DDF}{Logical. Determines how synthetic efficient units are
+generated. By default, \code{FALSE}, units are generated within
+full-dimensional facets of the DEA technology. If \code{TRUE}, a
+computationally simpler alternative based on DDF projections with randomly
+generated directional vectors is used.}
+
+\item{z_numeric}{Column indexes of the continuous environment variables (z) in the \code{data}.}
+
+\item{z_factor}{Column indexes of the factor environment variables (z) in the \code{data}.}
+
+\item{alpha}{This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.}
 
 \item{bandwidth}{the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. It is typically obtained using \code{\link[np]{npudensbw}} and supports mixed data types, including continuous variables and discrete unordered or ordered factors. Bandwidths can be selected using normal reference rules, likelihood cross-validation, or least-squares cross-validation following Li and Racine (2003). If \code{NULL}, the bandwidth is estimated internally.}
 

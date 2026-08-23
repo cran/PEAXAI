@@ -22,28 +22,35 @@
 #'     \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 #'   }
 #' @param balance_data A numeric vector indicating the different levels of balance required (e.g., c(0.1, 0.45, 0.6)).
+#' @param SMOTE_DDF Logical. Determines how synthetic efficient units are
+#'   generated. By default, \code{FALSE}, units are generated within
+#'   full-dimensional facets of the DEA technology. If \code{TRUE}, a
+#'   computationally simpler alternative based on DDF projections with randomly
+#'   generated directional vectors is used.
 #' @param bandwidth the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. It is typically obtained using \code{\link[np]{npudensbw}} and supports mixed data types, including continuous variables and discrete unordered or ordered factors. Bandwidths can be selected using normal reference rules, likelihood cross-validation, or least-squares cross-validation following Li and Racine (2003). If \code{NULL}, the bandwidth is estimated internally.
 #' @param seed  Integer. Seed for reproducibility.
 #' @param alpha This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.
-
 #'
 #' @importFrom dplyr anti_join
 #' @importFrom stats quantile
+#' @importFrom deaR make_deadata model_additive
+#' @importFrom Benchmarking dea.add
 #'
 #' @return A \code{list} where each element corresponds to a balance level, containing a single \code{data.frame}
 #' with the real and synthetic DMUs, correctly labeled.
 
 get_SMOTE_DMUs <- function(
-    data, facets, x, y, z_numeric = NULL, z_factor = NULL,
-    RTS = "vrs", alpha = FALSE, balance_data = NULL, bandwidth = NULL, seed) {
+    data, facets = NULL, x, y, RTS = "vrs", balance_data = NULL, SMOTE_DDF = FALSE,
+
+    # Z version
+    z_numeric = NULL, z_factor = NULL,
+
+    # robust version
+    alpha = FALSE,  bandwidth = NULL, seed
+
+    ) {
   # save a copy
   copy_data <- data
-
-  # # Ensure column indices are character names to avoid indexing issues in new subsets
-  # if (is.numeric(x)) x <- names(data)[x]
-  # if (is.numeric(y)) y <- names(data)[y]
-  # if (!is.null(z_numeric) && is.numeric(z_numeric)) z_numeric <- names(data)[z_numeric]
-  # if (!is.null(z_factor) && is.numeric(z_factor)) z_factor <- names(data)[z_factor]
 
   save_all_datasets_balanced <- vector("list", length(balance_data))
   names(save_all_datasets_balanced) <- as.character(balance_data)
@@ -51,8 +58,13 @@ get_SMOTE_DMUs <- function(
   # reproducibility.
   set.seed(seed)
 
-  # case 1 DMU is a facet
-  facet_length <- length(facets)
+  # SMOTE_DDF control
+  # if (SMOTE_DDF == FALSE) {
+
+    # case 1 DMU is a facet
+    facet_length <- length(facets)
+
+  # }
 
   # we need to determine, for each balance level, the number of synthetic DMUs to create
   for (balance in balance_data) {
@@ -64,29 +76,38 @@ get_SMOTE_DMUs <- function(
 
     names(save_dataset) <- names(copy_data)
 
-    # check if it is possible to balance
-    if (nrow(facets) == 0 | facet_length == 1) {
-      warning("No facets found; could not apply class balancing.")
+    if (!is.null(facets)) {
+      # check if it is possible to balance
+      if (nrow(facets) == 0 | facet_length == 1) {
+        warning("No facets found; could not apply class balancing.")
 
-      save_dataset <- rbind(save_dataset, data)
+        save_dataset <- rbind(save_dataset, data)
 
-      # join real data + SMOTE
-      new_data_completed <- save_dataset
+        # join real data + SMOTE
+        new_data_completed <- save_dataset
 
-      # save
-      save_all_datasets_balanced[[as.character(balance)]] <- new_data_completed
-      next
+        # save
+        save_all_datasets_balanced[[as.character(balance)]] <- new_data_completed
+        next
+      }
     }
 
     # --------------------------------------------------------------------------
     # determinate number of efficient and not efficient to create --------------
     # --------------------------------------------------------------------------
-    # information balancing process
-    message(paste0("Balancing: ", balance))
-
     # determinate numbre of efficient and ineeficient units
     n_real_eff <- nrow(data[data$class_efficiency == "efficient", ])
     n_real_ineff <- nrow(data[data$class_efficiency == "not_efficient", ])
+
+    # check if everything is efficient
+    force_inefficiency <- FALSE
+    if (n_real_ineff == 0) {
+
+      force_inefficiency <- TRUE
+
+      max_x <- sapply(data[, x, drop = FALSE], max, na.rm = TRUE)
+      min_y <- sapply(data[, y, drop = FALSE], min, na.rm = TRUE)
+    }
 
     prop_real <- n_real_eff / nrow(data)
 
@@ -157,31 +178,66 @@ get_SMOTE_DMUs <- function(
       next
     }
 
-    # ============================================ #
-    # get index to create efficient synthetic DMUs #
-    # ============================================ #
-    data_eff <- data[data$class_efficiency == "efficient", ]
+    if (SMOTE_DDF == TRUE) {
+      # # o mejor empeorar???
+      # # ============================================ #
+      # # get index to create efficient synthetic DMUs #
+      # # ============================================ #
+      # # SMOTE_DDF
+      # data_eff <- data[data$class_efficiency == "efficient", ]
+      #
+      # # real efficient combination
+      # idx <- which(data$class_efficiency == "efficient")
+      # n_idx <- 1:nrow(idx)
+      #
+      # # number of efficient DMUs
+      # n_eff <- nrow(data_eff)
+      #
+      # # create units
+      # # lambda
+      #
+      # # proportion importance
+      # len <- NCOL(data) - 1
+      # browser()
+      # prop_imp <- 1 / len
+      #
+      # lambda <- rep(prop_imp, ncol(facets))
+      #
+      # n_comb <- nrow(data_eff)
+      #
+      # iter <- 0
+      #
+      # # end SMOTE_DDF
+    } else {
+      # ============================================ #
+      # get index to create efficient synthetic DMUs #
+      # ============================================ #
+      # maximal facet
 
-    # real efficient combination
-    idx <- facets
-    n_idx <- 1:nrow(idx)
+      data_eff <- data[data$class_efficiency == "efficient", ]
 
-    # number of efficient DMUs
-    n_eff <- nrow(data_eff)
+      # real efficient combination
+      idx <- facets
+      n_idx <- 1:nrow(idx)
 
-    # create units
-    # lambda
+      # number of efficient DMUs
+      n_eff <- nrow(data_eff)
 
-    # proportion importance
-    len <- ncol(facets)
+      # create units
+      # lambda
 
-    prop_imp <- 1 / len
+      # proportion importance
+      len <- ncol(facets)
 
-    lambda <- rep(prop_imp, ncol(facets))
+      prop_imp <- 1 / len
 
-    n_comb <- nrow(data_eff)
+      lambda <- rep(prop_imp, ncol(facets))
 
-    iter <- 0
+      n_comb <- nrow(data_eff)
+
+      iter <- 0
+    }
+
     # print(sense_balance)
     if (sense_balance == "not_efficient") {
       # proportion importance
@@ -194,10 +250,13 @@ get_SMOTE_DMUs <- function(
       # number of not efficient units to create, more than it is necessary
       new_create_ineff <- 4 * create_ineff
       iter_ineff <- 0
+
       while (nrow(save_dataset) < new_create_ineff) {
         iter_ineff <- iter_ineff + 1
         # Ruptura de seguridad para evitar bucles infinitos
         if (iter_ineff > new_create_ineff * 10) {
+
+          SMOTE_DDF <- TRUE # nuevo
           warning("Could not generate enough inefficient DMUs. Stopping early.")
           break
         }
@@ -215,9 +274,9 @@ get_SMOTE_DMUs <- function(
         less_facet <- 0
         while (ctrl_facet == TRUE) {
           iter_0 <- iter_0 + 1
-          # FIX: Evitar bucle infinito cuando es imposible encontrar una combinación que no sea una faceta.
-          # Se sustituyó la llamada a browser() por una ruptura segura tras 30 iteraciones.
-          if (iter_0 >= 30) {
+
+          # evits infinite loop
+          if (iter_0 >= 100) {
             ctrl_facet <- FALSE
           }
 
@@ -273,6 +332,8 @@ get_SMOTE_DMUs <- function(
         } # end while generate random sample
 
         if (is.null(z_numeric)) {
+          p <- x+y
+          random_convex <- sample(x = seq_len(nrow(data)), size = length(p))
           selection <- data[unlist(as.vector(random_convex)), c(x, y)]
         } else {
           selection <- data[unlist(as.vector(random_convex)), c(x, y, z_numeric)]
@@ -288,6 +349,21 @@ get_SMOTE_DMUs <- function(
         new_unit <- colSums(selection * normalize_lambda)
         new_unit <- as.data.frame(t(new_unit))
 
+        # if everything is efficient, make worst
+        if (force_inefficiency == TRUE) {
+
+          for (var_x in x) {
+            max_global_x <- max(data[, var_x])
+            new_unit[, var_x] <- runif(1, min = new_unit[, var_x], max = max_global_x)
+          }
+
+          for (var_y in y) {
+            min_global_y <- min(data[, var_y])
+            new_unit[, var_y] <- runif(1, min = min_global_y, max = new_unit[, var_y])
+          }
+
+        }
+
         # paste z_variables
         if (!is.null(z_factor)) {
           # FIX: Forzar que current_z_factor sea siempre de una sola fila mediante [1, , drop = FALSE].
@@ -296,53 +372,77 @@ get_SMOTE_DMUs <- function(
           new_unit <- cbind(new_unit, current_z_factor)
         }
 
-        # check new_unit
-        DEA_B <- dea.add(
-          X = as.matrix(new_unit[, x]),
-          Y = as.matrix(new_unit[, y]),
-          XREF = as.matrix(data[data$class_efficiency == "efficient", x]),
-          YREF = as.matrix(data[data$class_efficiency == "efficient", y]),
-          RTS = RTS
-        )[["sum"]]
+        modelo_WAM <- tryCatch({
 
+          datos_deaR <- as.data.frame(rbind(
+            data[data$class_efficiency == "efficient", c(x, y)],
+            new_unit[, c(x, y)]
+          ))
+
+          deadata <- make_deadata(
+            datadea = datos_deaR,
+            inputs = x,
+            outputs = y
+          )
+
+          weight_inputs <- colMeans(
+            data[, x, drop = FALSE],
+            na.rm = TRUE
+          )
+
+          weight_outputs <- colMeans(
+            data[, y, drop = FALSE],
+            na.rm = TRUE
+          )
+
+          model_additive(
+            datadea = deadata,
+            dmu_eval = nrow(datos_deaR),
+            dmu_ref = seq_len(nrow(datos_deaR) - 1),
+            weight_slack_i = weight_inputs,
+            weight_slack_o = weight_outputs,
+            rts = RTS,
+            compute_target = TRUE
+          )
+
+        }, error = function(e) {
+
+          NULL
+        })
+
+        # Si model_additive() ha generado un error
+        if (is.null(modelo_WAM)) {
+          next
+        }
+
+        add_score <- as.numeric(names(modelo_WAM[["dmu_eval"]]))
         # assing efficiency
-        label <- ifelse(round(DEA_B, 4) <= 0.0001, "efficient", "not_efficient")
-
-        # FIX: Cuando se requieren DMUs ineficientes en modelos de una sola faceta (single-facet),
-        # las combinaciones convexas siempre resultan en unidades eficientes (causando un bucle infinito).
-        # Solución: "worsening" (empeorar) artificialmente la unidad multiplicando sus inputs (x)
-        # por un factor > 1 y sus outputs (y) por un factor < 1, proyectándola al interior ineficiente.
-        # if (label == "efficient") {
-        #   new_unit[, x] <- new_unit[, x] * runif(length(x), 1.05, 1.15)
-        #   new_unit[, y] <- new_unit[, y] * runif(length(y), 0.85, 0.95)
-        #
-        #   DEA_B <- dea.add(
-        #     X = as.matrix(new_unit[, x]),
-        #     Y = as.matrix(new_unit[, y]),
-        #     XREF = as.matrix(data[data$class_efficiency == "efficient", x]),
-        #     YREF = as.matrix(data[data$class_efficiency == "efficient", y]),
-        #     RTS = RTS
-        #   )[["sum"]]
-        #
-        #   label <- ifelse(round(DEA_B, 4) <= 0.0001, "efficient", "not_efficient")
-        # }
+        label <- ifelse(round(add_score, 4) <= 0.0001, "efficient", "not_efficient")
 
         # save if the DMU is not_efficient
         if (label == "not_efficient") {
           new_unit$class_efficiency <- "not_efficient"
-          new_unit$score <- round(DEA_B, 4)
+          new_unit$score <- round(add_score, 4)
           save_dataset <- rbind(save_dataset, new_unit)
         } # end check
       } # end while
 
-      # order by score in innefficieny DEA
-      # make quiantiles
-      q_innef <- quantile(save_dataset$score)
+      # if (SMOTE_DDF == TRUE) {
+      #   if (nrow(save_dataset) < new_create_ineff) {
+      #     iter_ineff <- iter_ineff + 1
+      #
+      #     idx <- sample(seq(nrow(data)), 1)
+      #
+      #     new_unit <- data[idx,]
+      #
+      #   }
+      # }
 
-      # group_by
+      # order by score in innefficieny DEA
+      # group_by quantiles safely, avoiding 'breaks are not unique' error
       quantiles <- cut(
-        save_dataset$score,
-        breaks = q_innef,
+        rank(save_dataset$score, ties.method = "random"),
+        breaks = 4,
         include.lowest = TRUE,
         labels = c("Q1", "Q2", "Q3", "Q4")
       )
@@ -435,27 +535,6 @@ get_SMOTE_DMUs <- function(
             new_unit <- cbind(new_unit, current_z_factor_inner)
           }
 
-#           # check new_unit
-#           DEA_B <- dea.add(
-#             X = as.matrix(new_unit[, x]),
-#             Y = as.matrix(new_unit[, y]),
-#             XREF = as.matrix(data[data$class_efficiency == "efficient", x]),
-#             YREF = as.matrix(data[data$class_efficiency == "efficient", y]),
-#             RTS = RTS
-#           )[["sum"]]
-# #
-#           if (DEA_B > 0.0001) {
-#             print("DEA_B solution")
-#             print(DEA_B)
-#             browser()
-#           }
-#
-#           # print(paste("Iter:", iter_eff, " | DEA_B:", DEA_B))
-# #
-#           # assing efficiency
-#           label <- ifelse(round(DEA_B, 4) <= 0.0001, "efficient", "not_efficient")
-          # print(paste("Label assigned:", label))
-#
           # save if the DMU is not_efficient
           # if (label == "efficient") {
             new_unit$class_efficiency <- "efficient"

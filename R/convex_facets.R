@@ -12,21 +12,26 @@
 #' @param RTS Text string or number defining the underlying DEA technology /
 #'   returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 #'   \describe{
-#'     \item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 #'     \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-#'     \item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 #'     \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-#'     \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-#'     \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 #'   }
+#' @param verbose Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).
 #'
 #' @importFrom deaR make_deadata maximal_friends
+#' @importFrom peakRAM peakRAM
 #'
 #' @return A \code{matrix} where each row represents a maximal facet, and the values are the row indices of the efficient DMUs in \code{data} that form that facet. Returns an empty \code{matrix} if there are no efficient units.
 
 convex_facets <- function (
-    data, x, y, RTS = "vrs"
+    data, x, y, RTS = "vrs", verbose
 ) {
+
+  # marge Benchmarking with deaR
+  if (RTS == 3) {
+    RTS <- "crs"
+  } else if (RTS == 1) {
+    RTS <- "vrs"
+  }
 
   # ----------------------------------------------------------------------------
   # Determine the efficient combinations by Additive DEA -----------------------
@@ -44,11 +49,32 @@ convex_facets <- function (
       inputs = x,
       outputs = y
     )
+    #
+    # eff_convex_list <- maximal_friends(
+    #   datadea = datadea,
+    #   rts = RTS,
+    #   dmu_ref = which(data$class_efficiency == "efficient"),
+    #   silent = verbose)
 
-    eff_convex_list <- maximal_friends(
-      datadea = datadea,
-      rts = RTS,
-      dmu_ref = which(data$class_efficiency == "efficient"))
+    ram_facets <- peakRAM::peakRAM({
+      eff_convex_list <- maximal_friends(
+        datadea = datadea,
+        rts = RTS,
+        dmu_ref = which(data$class_efficiency == "efficient"),
+        silent = !verbose
+      )
+    })
+
+    if (isTRUE(verbose)) {
+      message(
+        sprintf(
+          "facets identification: %.2f s | RAM peak: %.1f MiB | %d efficient DMUs",
+          ram_facets$Elapsed_Time_sec,
+          ram_facets$Peak_RAM_Used_MiB,
+          length(which(data$class_efficiency == "efficient"))
+        )
+      )
+    }
 
     # Methodological choice: We only retain the facets with the maximum
     # number of vertices (i.e. full-dimensional facets in the dataset).

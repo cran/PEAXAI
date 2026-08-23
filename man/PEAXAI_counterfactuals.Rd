@@ -8,14 +8,14 @@ PEAXAI_counterfactuals(
   data,
   x,
   y,
+  z_numeric = NULL,
+  z_factor = NULL,
   final_model,
-  calibration_model = NULL,
-  sign = FALSE,
   efficiency_thresholds,
   directional_vector,
   n_expand,
   n_grid,
-  max_y = 2,
+  max_y = 1,
   min_x = 1
 )
 }
@@ -26,14 +26,12 @@ PEAXAI_counterfactuals(
 
 \item{y}{A numeric vector indicating the column indexes of output variables in \code{data}.}
 
+\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
+
 \item{final_model}{A fitted \pkg{caret} model of class \code{"train"} that supports
 \code{predict(type = "prob")} and returns a probability column for the efficient class.}
-
-\item{calibration_model}{Optional probability-calibration model applied to the raw predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
-If provided, calibrated probabilities are used for ranking and threshold-based decisions.
-Set to \code{NULL} to use uncalibrated predictions.}
-
-\item{sign}{If it is TRUE, only}
 
 \item{efficiency_thresholds}{A numeric vector of probability levels in (0,1)
 that define the efficiency classes (e.g., \code{c(0.75, 0.9, 0.95)}).}
@@ -52,16 +50,18 @@ search range for \eqn{\beta}.}
 to refine the cutoff value of \eqn{\beta}.}
 
 \item{max_y}{Numeric. Upper-limit multiplier for output expansion in the search
-procedure (default = 2).}
+procedure (default = 1).}
 
 \item{min_x}{Numeric. Lower-limit multiplier for input contraction in the search
 procedure (default = 1).}
 }
 \value{
-A named \code{list} with one element per threshold. Each element contains:
+A named \code{list} with one element per threshold (names are the thresholds
+as character strings). Each element contains:
 \itemize{
-\item \code{data}: A \code{data.frame} of projected input–output values at that threshold.
-\item \code{beta}: A two-column \code{data.frame} with the optimal \eqn{\beta}
+\item \code{counterfactual_dataset}: A \code{data.frame} of projected
+input-output values at that threshold.
+\item \code{inefficiencies}: A \code{data.frame} with the optimal \eqn{\beta}
 and the corresponding predicted probability.
 }
 }
@@ -82,6 +82,7 @@ the predicted probability of belonging to the efficient class reaches the target
 \donttest{
   data("firms", package = "PEAXAI")
 
+  # Firms of the Valencian Community: four inputs and one output
   data <- subset(
     firms,
     autonomous_community == "Comunidad Valenciana"
@@ -89,62 +90,58 @@ the predicted probability of belonging to the efficient class reaches the target
 
   x <- 1:4
   y <- 5
-  RTS <- "vrs"
-  imbalance_rate <- NULL
-
-  trControl <- list(
-    method = "cv",
-    number = 3
-  )
-
-  # glm method
-  methods <- list(
-    "glm" = list(
-      weights = "dinamic"
-     )
-  )
-
-  metric_priority <- c("Balanced_Accuracy", "F1", "ROC_AUC")
 
   models <- PEAXAI_fitting(
-    data = data, x = x, y = y, RTS = RTS,
-    imbalance_rate = imbalance_rate,
-    methods = methods,
-    trControl = trControl,
-    metric_priority = metric_priority,
-    verbose = FALSE,
-    seed = 1
+    data            = data,
+    x               = x,
+    y               = y,
+    RTS             = "vrs",
+    imbalance_rate  = NULL,
+    methods         = list("glm" = list(weights = "dinamic")),
+    trControl       = list(method = "cv", number = 3),
+    metric_priority = c("Balanced_Accuracy", "F1", "ROC_AUC"),
+    seed            = 1,
+    verbose         = FALSE
   )
 
   final_model <- models[["best_model_fit"]][["glm"]]
 
-  importance_method <- list(name = "PI", n.repetitions = 5)
-
+  # The direction of the counterfactual search is given by the global
+  # importance of the variables, rescaled around the sample mean.
   relative_importance <- PEAXAI_global_importance(
-    final_model = final_model,
-    x = x,
-    y = y,
-    explain_data = data,
-    reference_data = final_model$trainingData,
-    importance_method = importance_method,
-    seed = 1
+    final_model       = final_model,
+    x                 = x,
+    y                 = y,
+    explain_data      = data,
+    reference_data    = final_model$trainingData,
+    importance_method = list(name = "PI", n.repetitions = 5),
+    seed              = 1
   )
-
-  efficiency_thresholds <- seq(0.75, 0.95, 0.1)
 
   directional_vector <- list(
     relative_importance = relative_importance,
-    baseline  = "mean"
+    baseline            = "mean"
   )
 
+  efficiency_thresholds <- c(0.75, 0.90)
+
   targets <- PEAXAI_counterfactuals(
-    data = data,
-    x = x, y = y,
-    final_model = final_model,
+    data                  = data,
+    x                     = x,
+    y                     = y,
+    final_model           = final_model,
     efficiency_thresholds = efficiency_thresholds,
-    directional_vector = directional_vector,
-    n_expand = 0.5, n_grid = 50, max_y = 2, min_x = 1
+    directional_vector    = directional_vector,
+    n_expand              = 0.5,
+    n_grid                = 50,
+    max_y                 = 2,
+    min_x                 = 1
   )
+
+  # One element per threshold, each with the projected DMUs and their beta
+  names(targets)
+  head(targets[["0.75"]][["counterfactual_dataset"]])
+  head(targets[["0.75"]][["inefficiencies"]])
 }
 
 }

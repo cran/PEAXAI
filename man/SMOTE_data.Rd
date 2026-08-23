@@ -4,7 +4,7 @@
 \alias{SMOTE_data}
 \title{Create New SMOTE Units to Balance Data combinations of m + s}
 \usage{
-SMOTE_data(data, x, y, RTS = "vrs", balance_data, seed)
+SMOTE_data(data, x, y, RTS = "vrs", balance_data, seed, verbose = TRUE)
 }
 \arguments{
 \item{data}{A \code{data.frame} containing the variables used in the model.}
@@ -16,17 +16,15 @@ SMOTE_data(data, x, y, RTS = "vrs", balance_data, seed)
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \describe{
-\item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-\item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-\item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-\item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
 
 \item{balance_data}{Indicate level of efficient units to achive and the number of efficient and not efficient units.}
 
 \item{seed}{Integer. Seed for reproducibility.}
+
+\item{verbose}{Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).}
 }
 \value{
 It returns a \code{data.frame} with the newly created set of DMUs incorporated.
@@ -34,3 +32,4 @@ It returns a \code{data.frame} with the newly created set of DMUs incorporated.
 \description{
 This function creates new DMUs to address data imbalances. If the majority class is efficient, it generates new inefficient DMUs by worsering the observed units. Conversely, if the majority class is inefficient, it projects inefficient DMUs to the frontier. Finally, a random selection if performed to keep a proportion of 0.65 for the majority class and 0.35 for the minority class.
 }
+\keyword{internal}

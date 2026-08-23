@@ -22,15 +22,12 @@
 #'   \item \code{"train"}: an object fitted with \pkg{caret}.
 #'   \item \code{"glm"}: a binomial logistic regression model.
 #' }
-#' @param calibration_model Optional probability-calibration model applied to the raw
-#' predicted probabilities from \code{final_model} (e.g., Platt scaling or isotonic regression).
-#' If provided, calibrated probabilities are used for ranking and threshold-based decisions.
-#' Set to \code{NULL} to use uncalibrated predictions.
 #' @param efficiency_thresholds Numeric vector defining one or more efficiency probability
 #' thresholds to determine the attainable frontier or peer set.
-#' @param targets A named list containing, for each efficiency threshold, the corresponding
-#' attainable targets and estimated \eqn{\beta} values (e.g., obtained from counterfactual analysis).
-#' Each element should be a list with a component named \code{"beta"}.
+#' @param targets The object returned by \code{\link{PEAXAI_counterfactuals}}: a named
+#' list with one element per efficiency threshold, each containing the counterfactual
+#' projections (\code{counterfactual_dataset}) and the estimated \eqn{\beta} values
+#' (\code{inefficiencies}). Only required when \code{rank_basis = "attainable"}.
 #' @param rank_basis Character string specifying the ranking criterion. Options are:
 #' \itemize{
 #'   \item \code{"predicted"}: order units by predicted efficiency probability.
@@ -61,6 +58,7 @@
 #' \donttest{
 #'   data("firms", package = "PEAXAI")
 #'
+#'   # Firms of the Valencian Community: four inputs and one output
 #'   data <- subset(
 #'     firms,
 #'     autonomous_community == "Comunidad Valenciana"
@@ -68,78 +66,95 @@
 #'
 #'   x <- 1:4
 #'   y <- 5
-#'   RTS <- "vrs"
-#'   imbalance_rate <- NULL
-#'
-#'   trControl <- list(
-#'     method = "cv",
-#'     number = 3
-#'   )
-#'
-#'   # glm method
-#'   methods <- list(
-#'     "glm" = list(
-#'       weights = "dinamic"
-#'      )
-#'   )
-#'
-#'   metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
 #'
 #'   models <- PEAXAI_fitting(
-#'     data = data, x = x, y = y, RTS = RTS,
-#'     imbalance_rate = imbalance_rate,
-#'     methods = methods,
-#'     trControl = trControl,
-#'     metric_priority = metric_priority,
-#'     verbose = FALSE,
-#'     seed = 1
+#'     data            = data,
+#'     x               = x,
+#'     y               = y,
+#'     RTS             = "vrs",
+#'     imbalance_rate  = NULL,
+#'     methods         = list("glm" = list(weights = "dinamic")),
+#'     trControl       = list(method = "cv", number = 3),
+#'     metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+#'     seed            = 1,
+#'     verbose         = FALSE
 #'   )
 #'
 #'   final_model <- models[["best_model_fit"]][["glm"]]
 #'
-#'   importance_method <- list(name = "PI", n.repetitions = 5)
-#'
-#'   relative_importance <- PEAXAI_global_importance(
+#'   # (1) Ranking by predicted probability: neither 'efficiency_thresholds'
+#'   #     nor 'targets' are needed.
+#'   ranking <- PEAXAI_ranking(
+#'     data        = data,
+#'     x           = x,
+#'     y           = y,
 #'     final_model = final_model,
-#'     x = x,
-#'     y = y,
-#'     explain_data = data,
-#'     reference_data = final_model$trainingData,
-#'     importance_method = importance_method,
-#'     seed = 1
+#'     rank_basis  = "predicted"
 #'   )
 #'
-#'   efficiency_thresholds <- seq(0.75, 0.95, 0.1)
+#'   head(ranking)
 #'
-#'   directional_vector <- list(
-#'     relative_importance = relative_importance,
-#'     baseline  = "mean"
+#'   # (2) Ranking by attainable probability: both arguments become mandatory.
+#'   relative_importance <- PEAXAI_global_importance(
+#'     final_model       = final_model,
+#'     x                 = x,
+#'     y                 = y,
+#'     explain_data      = data,
+#'     reference_data    = final_model$trainingData,
+#'     importance_method = list(name = "PI", n.repetitions = 5),
+#'     seed              = 1
 #'   )
+#'
+#'   efficiency_thresholds <- c(0.75, 0.90)
 #'
 #'   targets <- PEAXAI_counterfactuals(
-#'     data = data,
-#'     x = x, y = y,
-#'     final_model = final_model,
+#'     data                  = data,
+#'     x                     = x,
+#'     y                     = y,
+#'     final_model           = final_model,
 #'     efficiency_thresholds = efficiency_thresholds,
-#'     directional_vector = directional_vector,
-#'     n_expand = 0.5, n_grid = 50, max_y = 2, min_x = 1
+#'     directional_vector    = list(
+#'       relative_importance = relative_importance,
+#'       baseline            = "mean"
+#'     ),
+#'     n_expand              = 0.5,
+#'     n_grid                = 50,
+#'     max_y                 = 2,
+#'     min_x                 = 1
 #'   )
 #'
-#'   ranking <- PEAXAI_ranking(data = data, x = x, y = y,
-#'   final_model = final_model, rank_basis = "predicted")
+#'   ranking_attainable <- PEAXAI_ranking(
+#'     data                  = data,
+#'     x                     = x,
+#'     y                     = y,
+#'     final_model           = final_model,
+#'     efficiency_thresholds = efficiency_thresholds,
+#'     targets               = targets,
+#'     rank_basis            = "attainable"
+#'   )
+#'
+#'   head(ranking_attainable[["0.75"]])
 #' }
 #'
 #' @export
 
 PEAXAI_ranking <- function(
-    data, x, y, final_model, calibration_model = NULL,
+    data, x, y, final_model,
     efficiency_thresholds, targets = NULL, rank_basis
     ) {
 
+  # check if parameters are well introduced
   validate_parametes_PEAXAI_ranking(
-    data, x, y, final_model,
-    efficiency_thresholds, targets, rank_basis
+    data                  = data,
+    x                     = x,
+    y                     = y,
+    final_model           = final_model,
+    efficiency_thresholds = efficiency_thresholds,
+    targets               = targets,
+    rank_basis            = rank_basis
   )
+
+  calibration_model <- NULL
 
   # reorder index 'x' and 'y' in data
   data <- data[, c(x,y)]
@@ -155,10 +170,7 @@ PEAXAI_ranking <- function(
     # caret::train
     prob_vector <- PEAXAI_predict(
       data = data,
-      x = x,
-      y = y,
-      final_model = final_model,
-      calibration_model = calibration_model
+      final_model = final_model
     )
     # prob_vector <- predict(final_model, newdata = data, type = "prob")["efficient"]
   } else {

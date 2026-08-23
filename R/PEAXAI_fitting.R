@@ -20,31 +20,14 @@
 #' @param RTS Text string or number defining the underlying DEA technology /
 #'   returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 #'   \describe{
-#'     \item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 #'     \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-#'     \item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 #'     \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-#'     \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-#'     \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 #'   }
 #' @param trControl A \code{caret::trainControl}-like list that specifies the resampling
 #'   strategy; recognized values for \code{$method} include \code{"cv"}, \code{"test_set"},
 #'   and \code{"none"}. See \pkg{caret} documentation.
 #' @param methods A \code{list} of selected machine learning models and their hyperparameters.
 #' @param metric_priority A \code{string} specifying the summary metric for classification to select the optimal model. Default includes \code{"Balanced_Accuracy"} due to (normally) unbalanced data.
-#' @param calibration_method Character string specifying the probability calibration
-#'   method applied to the fitted classifier. Supported options are:
-#'   \describe{
-#'     \item{\code{"none"}}{No probability calibration is applied; raw classifier
-#'       probabilities are returned.}
-#'     \item{\code{"platt"}}{Platt scaling, which fits a logistic regression model
-#'       mapping raw scores to calibrated probabilities. Suitable for relatively
-#'       small samples and parametric probability adjustment.}
-#'     \item{\code{"isotonic"}}{Isotonic regression, a non-parametric monotonic
-#'       calibration method that adapts flexibly to the empirical score-probability
-#'       relationship. Recommended for larger samples where sufficient calibration
-#'       data are available.}
-#'   }
 #'   Calibration is performed using validation data whenever resampling is enabled.
 #' @param hold_out Numeric proportion in (0,1) for validation split (default \code{NULL}).
 #'   If \code{NULL}, training and validation use the same data.
@@ -60,7 +43,6 @@
 #' @importFrom stats binomial family median na.omit runif setNames approxfun
 #' @importFrom utils combn tail
 #' @importFrom rms val.prob
-#' @importFrom isotone gpava
 #' @importFrom np npudensbw
 #'
 #' @return A \code{"PEAXAI"} (list) with the best technique, best fitted models and their performance and the results by fold.
@@ -69,50 +51,115 @@
 #' \donttest{
 #'   data("firms", package = "PEAXAI")
 #'
+#'   # Firms of the Valencian Community: 97 DMUs described by four inputs
+#'   # (columns 1 to 4) and one output (column 5).
 #'   data <- subset(
 #'     firms,
 #'     autonomous_community == "Comunidad Valenciana"
 #'   )
 #'
+#'   x <- 1:4
+#'   y <- 5
+#'
+#'   # Resampling scheme: stratified 3-fold cross-validation
 #'   trControl <- list(
 #'     method = "cv",
 #'     number = 3
 #'   )
 #'
-#'   # glm method
+#'   # Candidate algorithm: logistic regression with dynamic class weights
 #'   methods <- list(
 #'     "glm" = list(
-#'         weights = "dinamic"
-#'      )
+#'       weights = "dinamic"
+#'     )
 #'   )
 #'
 #'   models <- PEAXAI_fitting(
-#'     data = data,
-#'     x = c(1:4),
-#'     y = 5,
-#'     RTS = "vrs",
-#'     imbalance_rate = NULL,
-#'     methods = methods,
-#'     trControl = trControl,
+#'     data            = data,
+#'     x               = x,
+#'     y               = y,
+#'     RTS             = "vrs",
+#'     imbalance_rate  = NULL,
+#'     methods         = methods,
+#'     trControl       = trControl,
 #'     metric_priority = c("Balanced_Accuracy", "F1", "ROC_AUC"),
-#'     seed = 1,
-#'     verbose = FALSE
+#'     seed            = 1,
+#'     verbose         = FALSE
 #'   )
+#'
+#'   # Best fitted model for the 'glm' technique
+#'   final_model <- models[["best_model_fit"]][["glm"]]
 #' }
 #'
 #' @export
 
 PEAXAI_fitting <- function (
-    data, x, y, z_numeric = NULL, z_factor = NULL, RTS = "vrs",
-    B = NULL, alpha = FALSE, m = NULL, imbalance_rate = NULL,
-    trControl, methods, metric_priority = "Balanced_Accuracy",
-    calibration_method = NULL, hold_out = NULL, seed = 314, verbose = TRUE
+
+    # ----------------------
+    # PEAXAI standar version
+    # ----------------------
+    # data and DEA
+    data, x, y, RTS = "vrs",
+    # ML
+    imbalance_rate = NULL, trControl,
+    methods, metric_priority = "Balanced_Accuracy",
+    hold_out = NULL,
+    # indormation and reproducibility
+    seed = 314, verbose = TRUE,
+
+    # ----------------------
+    # Z version
+    # ----------------------
+    z_numeric = NULL, z_factor = NULL,
+
+    # ----------------------
+    # robust version
+    # ----------------------
+    B = NULL, alpha = NULL, m = NULL
     ) {
+
+#  #' @param SMOTE_DDF Logical. Determines how synthetic efficient units are
+#  #'   generated. By default, \code{FALSE}, units are generated within
+#  #'   full-dimensional facets of the DEA technology. If \code{TRUE}, a
+#  #'   computationally simpler alternative based on DDF projections with randomly
+#  #'   generated directional vectors is used.
+  SMOTE_DDF <- FALSE
+
+  # ----------------------------------------------------------------------------
+  # Forthcoming methodological extensions control ------------------------------
+  # ----------------------------------------------------------------------------
+  # Arguments reserved for forthcoming methodological extensions
+  extension_args <- list(
+    z_numeric         = z_numeric,
+    z_factor          = z_factor,
+    B                 = B,
+    alpha             = alpha,
+    m                 = m)
+
+  calibration_method <- NULL
+
+  provided_extension_args <- names(extension_args)[
+    !vapply(extension_args, is.null, logical(1))
+  ]
+
+  if (length(provided_extension_args) > 0L) {
+    stop(
+      sprintf(
+        "The following argument%s %s not supported in the current version of PEAXAI: %s. ",
+        if (length(provided_extension_args) == 1L) "" else "s",
+        if (length(provided_extension_args) == 1L) "is" else "are",
+        paste(sprintf("`%s`", provided_extension_args), collapse = ", ")
+      ),
+      "These arguments are reserved for forthcoming methodological extensions ",
+      "and will be enabled in a future release once the corresponding methodological ",
+      "developments have been published and incorporated into PEAXAI.",
+      call. = FALSE
+    )
+  }
 
   # ----------------------------------------------------------------------------
   # pre-processing -------------------------------------------------------------
   # ----------------------------------------------------------------------------
-
   # check if parameters are well introduced
   validate_parametes_PEAXAI_fitting(
     data = data,
@@ -124,7 +171,8 @@ PEAXAI_fitting <- function (
     metric_priority = metric_priority,
     imbalance_rate = imbalance_rate,
     hold_out = hold_out,
-    verbose = verbose
+    verbose = verbose,
+    seed = seed
   )
 
   # calibration parameters
@@ -245,7 +293,7 @@ PEAXAI_fitting <- function (
   }
 
   # ----------------------------------------------------------------------------
-  # Step 2: Create validation set ----------------------------------------------
+  # Step 1.1: Create validation set --------------------------------------------
   # ----------------------------------------------------------------------------
   # create datasets: (train + test) and (validation)
   if (is.null(hold_out)) {
@@ -287,22 +335,6 @@ PEAXAI_fitting <- function (
         paste0("Step 1.1: Labeling train observations...")
       )
     }
-
-    # label DMUs by technology observed in train
-    # valid_data <- label_efficiency(
-    #   data = valid_data,
-    #   REF = train_data,
-    #   x = x,
-    #   y = y,
-    #   z_numeric = z_numeric,
-    #   z_factor = z_factor,
-    #   RTS = RTS,
-    #   B = B,
-    #   m = m,
-    #   alpha = alpha,
-    #   seed = seed
-    # )
-
     train_data <- label_efficiency(
       data = train_data,
       REF = train_data,
@@ -325,7 +357,7 @@ PEAXAI_fitting <- function (
   }
 
   # ----------------------------------------------------------------------------
-  # Step 3: ML model training --------------------------------------------------
+  # Step 2: ML model training --------------------------------------------------
   # ----------------------------------------------------------------------------
   # the original train dataset
   real_balance <- prop.table(table(train_data$class_efficiency))[["efficient"]]
@@ -340,7 +372,7 @@ PEAXAI_fitting <- function (
 
   real_balance_stable <- paste0(as.character(round(real_balance, 4)),"*")
 
-  RTS_available <- c("1", "vrs")
+  RTS_available <- c("1", "vrs", "3", "crs")
 
   # ----------------------------------------------------------------------------
   # Step 3.1: Train performance with different hyperparameters -----------------
@@ -371,6 +403,24 @@ PEAXAI_fitting <- function (
     k = trControl[["number"]]
   )
 
+  # loop control every folds has both clasess
+  for (fold_i in names(folds)) {
+
+    if (all(data[folds[[fold_i]],]$class_efficiency == "efficient") ||
+        all(data[folds[[fold_i]],]$class_efficiency == "not_efficient")) {
+
+      stop(
+        "\nCross-validation is not possible with the specified number of folds.\n\n",
+        "Reason:\n",
+        "  - All folds must contain at least one observation from each class.\n\n",
+        "Recommendation:\n",
+        "  - Reduce the number of folds.\n",
+        call. = FALSE
+      )
+
+    }
+  }
+
   # performance by fold
   performance_by_fold <- vector("list", length(folds))
   names(performance_by_fold) <- names(folds)
@@ -381,6 +431,12 @@ PEAXAI_fitting <- function (
 
   test_idx_by_fold <- vector("list", length(folds))
   names(test_idx_by_fold) <- names(folds)
+
+  # new
+  calibrating_datasets_by_method <- vector("list", 0)
+  # names(calibrating_datasets_by_method) <- names(methods)
+
+  resume_calibration_by_method <- vector("list", 0)
 
   # cross validation
   if (isTRUE(verbose)) {
@@ -425,16 +481,25 @@ PEAXAI_fitting <- function (
     )
 
     # --------------------------------------------------------------------------
-    # Step 3.1: Addressing imbalance rate (if there is convexity) ---------------
+    # Step 3.1: Addressing imbalance rate --------------------------------------
     # --------------------------------------------------------------------------
     # datasets_to_train <- list(train_set)
     # names(datasets_to_train)[1] <- real_balance_stable
 
+    if (isTRUE(verbose)) {
+      info_imb_rate <- round(prop.table(table(train_set$class_efficiency))[1], 4) * 100
+      sprintf(
+        "%s - class imbalance: the 'efficient' class represents %.2f%% of the training set.",
+        fold_i,
+        info_imb_rate
+      )
+    }
+
     if (!is.null(imbalance_rate)) {
 
-      if (as.character(RTS) %in% RTS_available) {
+      if (SMOTE_DDF == FALSE) {
 
-        if (is.null(z_numeric) & is.null(z_numeric)) {
+        if (is.null(z_numeric) & is.null(z_factor)) {
 
           train_data_SMOTE <- SMOTE_data(
             data = train_set,
@@ -442,7 +507,8 @@ PEAXAI_fitting <- function (
             y = y,
             RTS = RTS,
             balance_data = imbalance_rate,
-            seed = seed
+            seed = seed,
+            verbose = verbose
           )
 
         } else {
@@ -472,8 +538,18 @@ PEAXAI_fitting <- function (
 
         datasets_to_train_fold_i <- append(train_data_SMOTE, datasets_to_train_fold_i, after = 0)
 
-      } else {
+      } else  if (SMOTE_DDF == TRUE) {
+
         message("Without the convexity assumption, SMOTE units cannot be created on the efficient frontier.")
+
+        balance_datasets <- get_SMOTE_DMUs(
+          data = data,
+          x = x,
+          y = y,
+          balance_data = imbalance_rate,
+          seed = seed,
+          SMOTE_DDF = SMOTE_DDF
+        )
       }
 
       # end balancing fold_i
@@ -534,6 +610,7 @@ PEAXAI_fitting <- function (
 
           # raw probabilities
           y_hat_prob <- predict(model_fit, newdata = test_set, type = "prob")[, 1]
+
           if (all(is.na(y_hat_prob))) {
             if (isTRUE(verbose)) {
               warning("Predictions returned NA for method ", method_i, ". Generating NA performance for this configuration.")
@@ -567,20 +644,21 @@ PEAXAI_fitting <- function (
           # reference
           y_obs <- factor(test_set[, "class_efficiency"], levels = levls)
 
-          # # save calibration test per fold/method/balance/grid
-          # calibration <- cbind(as.data.frame(y_obs), y_hat_prob)
-          # names(calibration) <- c("obs", "efficient")
-          #
-          # # check if Calibration is needed
-          # y_obs_label <- ifelse(y_obs == "efficient", 1,0)
-          #
+          # save calibration test per fold/method/balance/grid
+          calibration <- cbind(as.data.frame(y_obs), y_hat_prob)
+          names(calibration) <- c("obs", "efficient")
+
+          # check if Calibration is needed
+          y_obs_label <- ifelse(y_obs == "efficient", 1,0)
+
           # eps <- 1e-5
           # y_hat_prob <- pmin(pmax(y_hat_prob, eps), 1 - eps)
-          #
-          # calibration$DMU <- test_set_idx
-          #
-          # # store calibration for this fold
-          # calibrating_datasets_by_method[[method_i]][[datasets_to_train_i]][[fold_i]][[grid_i]] <- calibration
+
+          calibration$DMU <- test_set_idx
+
+          # store calibration for this fold
+          # creo que no se guarda bien
+          calibrating_datasets_by_method[[method_i]][[datasets_to_train_i]][[fold_i]][[grid_i]] <- calibration
 
           # confusion matrix
           cm <- confusionMatrix(
@@ -805,8 +883,8 @@ PEAXAI_fitting <- function (
   save_best_model_fit <- vector("list", length = length(methods))
   names(save_best_model_fit) <- names(methods)
 
-  save_calibration_model <- vector("list", length(methods))
-  names(save_calibration_model) <- names(methods)
+  save_calibration_data <- vector("list", length(methods))
+  names(save_calibration_data) <- names(methods)
 
   for (method_i in names(methods)) {
 
@@ -856,6 +934,39 @@ PEAXAI_fitting <- function (
       idx <- 1
     }
 
+    # --------------------------------------------------------------------
+    # Calibration: collect predictions across all folds for best config --
+    # --------------------------------------------------------------------
+    calibration_dataset <- NULL
+    for (fold_i in names(folds)) {
+      calibration_dataset <- rbind(
+        calibration_dataset,
+        calibrating_datasets_by_method[[method_i]][[best_balance_i]][[fold_i]][[idx]]
+      )
+    }
+
+    DMU <- calibration_dataset$DMU
+    calibration_dataset_method_i <- arrange(.data = calibration_dataset, DMU)
+    # calibration_dataset_method_i <- calibration_dataset %>%
+    #   arrange(calibration_dataset, DMU)
+
+    calibration_dataset_method_i$obs <- ifelse(calibration_dataset_method_i$obs == "efficient", 1,0)
+    eps <- 1e-15
+    calibration_dataset_method_i$efficient <- pmin(pmax(calibration_dataset_method_i$efficient, eps), 1 - eps)
+
+    res <- val.prob(
+      p = calibration_dataset_method_i$efficient,
+      y = calibration_dataset_method_i$obs,
+      pl = FALSE
+      # xlab = "Predicted probability of being efficient",
+      # ylab = "Observed proportion of efficient DMUs"
+    )
+
+    resume_calibration <- t(res)
+    resume_calibration <- as.data.frame(resume_calibration)
+
+    resume_calibration_by_method[[method_i]] <- resume_calibration
+
     # train the best model TRAIN
     # NO VALIDATION SET
 
@@ -871,7 +982,8 @@ PEAXAI_fitting <- function (
           y = y,
           RTS = RTS,
           balance_data = as.numeric(best_balance_i),
-          seed = seed
+          seed = seed,
+          verbose = verbose
         )
 
       } else {
@@ -889,7 +1001,8 @@ PEAXAI_fitting <- function (
           m = m,
           alpha = alpha,
           bandwidth = bandwidth,
-          seed = seed
+          seed = seed,
+          verbose = verbose
         )
 
       }
@@ -1060,7 +1173,7 @@ PEAXAI_fitting <- function (
 
         out_names <- c("Accuracy", "Kappa",
                        "Recall", "Specificity", "Precision", "F1", "Balanced_Accuracy", "G_mean",
-                       "ROC-AUC", "PR-AUC",
+                       "ROC_AUC", "PR_AUC",
                        "Cross_Entropy", "Cross_Entropy_Efficient")
 
         performance <- setNames(rep(NA, length(out_names)), out_names)
@@ -1209,7 +1322,8 @@ PEAXAI_fitting <- function (
             y = y,
             RTS = RTS,
             balance_data = as.numeric(best_balance_i),
-            seed = seed
+            seed = seed,
+            verbose = verbose
           )
 
           all_data_SMOTE <- all_data_SMOTE[[1]]
@@ -1229,7 +1343,8 @@ PEAXAI_fitting <- function (
             m = m,
             alpha = alpha,
             bandwidth = bandwidth,
-            seed = seed
+            seed = seed,
+            verbose = verbose
           )
 
           all_data_SMOTE <- all_data_SMOTE[[1]]
@@ -1264,6 +1379,7 @@ PEAXAI_fitting <- function (
 
     output_PEAXAI_models <- list(
       best_model_fit = save_best_model_fit,
+      calibration_best_model_fit = resume_calibration_by_method,
       performance_train = save_performance_train,
       performance_train_all = performance_train_all_by_method
       # calibration_dataset = save_calibrations_dataset,
@@ -1277,6 +1393,7 @@ PEAXAI_fitting <- function (
 
     output_PEAXAI_models <- list(
       best_model_fit = save_best_model_fit,
+      calibration_best_model_fit = resume_calibration_by_method,
       performace_hold_out = save_performance_validation,
       performance_train = save_performance_train,
       performance_train_all = performance_train_all_by_method
@@ -1286,5 +1403,5 @@ PEAXAI_fitting <- function (
 
     return(output_PEAXAI_models)
   }
-browser()
+
 }

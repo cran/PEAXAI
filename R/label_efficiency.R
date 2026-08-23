@@ -40,6 +40,7 @@
 #' density estimation.
 #'
 #' @importFrom Benchmarking dea.add
+#' @importFrom deaR make_deadata model_additive
 #' @importFrom np npudensbw npudens
 #'
 #' @return
@@ -56,20 +57,12 @@
 #' # table(out$class_efficiency)
 #' }
 #'
-#' @export
+#' @keywords internal
 
 label_efficiency <- function (
     data, REF = data, x, y, z_numeric = NULL, z_factor = NULL, RTS = "vrs",
     B = 1, alpha = FALSE, m = NULL, bandwidth = NULL, seed
   ) {
-
-  # check if parameters are well introduced
-  validate_parametes_label_efficiency(
-    data = data,
-    x = x,
-    y = y,
-    RTS = RTS
-  )
 
   if (is.null(z_numeric) & is.null(z_factor)) {
 
@@ -84,6 +77,7 @@ label_efficiency <- function (
     pareto <- rep(TRUE, n)
 
     for (k in seq_len(n)) {
+
       # En Z = [-X, Y], dominar significa ser >= componente a componente
       weak_dom <- rowSums(Z >= matrix(Z[k, ], n, ncol(Z), byrow = TRUE) - tol) == ncol(Z)
       strict_dom <- rowSums(Z > matrix(Z[k, ], n, ncol(Z), byrow = TRUE) + tol) > 0
@@ -91,12 +85,11 @@ label_efficiency <- function (
       pareto[k] <- !any(weak_dom & strict_dom)
     }
 
-    pareto
     #
     # the additive DEA
 
     # benchmarking to calculate additive-DEA
-    add_scores <- dea.add(
+    add_scores <- Benchmarking::dea.add(
       X = as.matrix(data[,x]),
       Y = as.matrix(data[,y]),
       XREF = as.matrix(REF[pareto,x]),
@@ -104,8 +97,61 @@ label_efficiency <- function (
       RTS = RTS
     )[["sum"]]
 
+    # check again
+    if (any(is.na(add_scores))) {
+
+      datos_deaR <- as.data.frame(data)
+
+      deadata <- make_deadata(
+        datadea = datos_deaR,
+        inputs = x,
+        outputs = y
+      )
+
+      weight_inputs <- colMeans(
+        data[, x, drop = FALSE],
+        na.rm = TRUE
+      )
+
+      weight_outputs <- colMeans(
+        data[, y, drop = FALSE],
+        na.rm = TRUE
+      )
+
+      new_add_score <- model_additive(
+        datadea = deadata,
+        dmu_eval = which(is.na(add_scores)),
+        dmu_ref = which(pareto == TRUE),
+        weight_slack_i = weight_inputs,
+        weight_slack_o = weight_outputs,
+        rts = RTS,
+        compute_target = TRUE
+      )
+
+      new_add_score <- as.numeric(names(new_add_score[["dmu_eval"]]))
+
+      pos <- 1
+      na_DMU <- which(is.na(add_scores))
+
+      for (na_DMU_i in na_DMU) {
+
+        if (!is.na(new_add_score[pos])) {
+          add_scores[na_DMU_i] <- new_add_score[pos]
+        }
+
+        pos <- pos + 1
+
+      }
+
+    }
+
+    # NA filter
+    if(any(is.na(data))) {
+      data <- na.omit(data)
+    }
+
     # determine efficient and inefficient DMUs
-    class_efficiency <- ifelse(add_scores <= 0.0001, 1, 0)
+    class_efficiency <- ifelse(add_scores == 0, 1, 0)
 
     # add new varaible
     data <- as.data.frame (
@@ -222,7 +268,7 @@ label_efficiency <- function (
           #   XREF = X_ref,
           #   YREF = Y_ref)$eff
 
-          DEA_B[j] <- dea.add(
+          DEA_B[j] <- Benchmarking::dea.add(
             X = as.matrix(data[i,x, drop = FALSE]),
             Y = as.matrix(data[i,y, drop = FALSE]),
             XREF = as.matrix(X_ref, drop = FALSE),

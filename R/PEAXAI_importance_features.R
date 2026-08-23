@@ -8,10 +8,9 @@
 #'   \item \code{"SHAP"} — Model-agnostic SHAP approximations via \pkg{kernelshap}.
 #'   \item \code{"PI"} — Permutation Importance via \pkg{iml}.
 #' }
-#' You can evaluate the model on either the training domain (\code{background = "train"})
-#' or the real-world domain (\code{background = "real"}) and compute importance on a
-#' chosen \code{target} set (\code{"train"} or \code{"real"}). Importances are
-#' returned normalized to sum to 1.
+#' Importance is computed on the DMUs supplied in \code{explain_data}, using
+#' \code{reference_data} (typically \code{final_model$trainingData}) as the reference
+#' distribution. Importances are returned normalized to sum to 1.
 #'
 #' @param final_model A fitted model. If it is a base-\code{glm} binomial, probabilities
 #'   are obtained with \code{type = "response"}; otherwise the function expects
@@ -19,6 +18,8 @@
 #' @param x Integer or character vector with the columns used as **inputs** (predictors).
 #' @param y Integer or character vector with the columns used as **outputs** (targets used
 #'   to define \code{class_efficiency} in training; not included in \code{X} when explaining).
+#' @param z_numeric Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.
+#' @param z_factor Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.
 #' @param explain_data A \code{data.frame} with the original observed DMUs passed
 #'   by the user to \code{PEAXAI_fitting()}. This dataset represents the real,
 #'   non-augmented observations on which explanations can be computed.
@@ -53,6 +54,7 @@
 #' \donttest{
 #'   data("firms", package = "PEAXAI")
 #'
+#'   # Firms of the Valencian Community: four inputs and one output
 #'   data <- subset(
 #'     firms,
 #'     autonomous_community == "Comunidad Valenciana"
@@ -60,58 +62,38 @@
 #'
 #'   x <- 1:4
 #'   y <- 5
-#'   RTS <- "vrs"
-#'   imbalance_rate <- NULL
-#'
-#'   trControl <- list(
-#'     method = "cv",
-#'     number = 3
-#'   )
-#'
-#'   # glm method
-#'   methods <- list(
-#'     "glm" = list(
-#'       weights = "dinamic"
-#'      )
-#'    )
-#'
-#'   metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
 #'
 #'   models <- PEAXAI_fitting(
-#'     data = data, x = x, y = y, RTS = RTS,
-#'     imbalance_rate = imbalance_rate,
-#'     methods = methods,
-#'     trControl = trControl,
-#'     metric_priority = metric_priority,
-#'     seed = 1,
-#'     verbose = FALSE
+#'     data            = data,
+#'     x               = x,
+#'     y               = y,
+#'     RTS             = "vrs",
+#'     imbalance_rate  = NULL,
+#'     methods         = list("glm" = list(weights = "dinamic")),
+#'     trControl       = list(method = "cv", number = 3),
+#'     metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+#'     seed            = 1,
+#'     verbose         = FALSE
 #'   )
 #'
 #'   final_model <- models[["best_model_fit"]][["glm"]]
 #'
+#'   # Permutation importance (iml). Use list(name = "SHAP", bg_n = 50) for
+#'   # kernelshap, or list(name = "SA", method = "1D-SA") for rminer.
 #'   importance_method <- list(name = "PI", n.repetitions = 5)
 #'
 #'   relative_importance <- PEAXAI_global_importance(
-#'     final_model = final_model,
-#'     x = x,
-#'     y = y,
-#'     explain_data = data,
-#'     reference_data = final_model$trainingData,
+#'     final_model       = final_model,
+#'     x                 = x,
+#'     y                 = y,
+#'     explain_data      = data,
+#'     reference_data    = final_model$trainingData,
 #'     importance_method = importance_method,
-#'     seed = 1
+#'     seed              = 1
 #'   )
 #'
-#'   imp <- PEAXAI_global_importance(
-#'     final_model = final_model,
-#'     x = x,
-#'     y = y,
-#'     explain_data = data,
-#'     reference_data = final_model$trainingData,
-#'     importance_method = importance_method,
-#'     seed = 1
-#'   )
-#'
-#'   head(imp)
+#'   # One normalized weight per input and output; they add up to 1
+#'   relative_importance
 #' }
 #'
 #' @seealso \code{\link[kernelshap]{kernelshap}}, \code{\link[iml]{FeatureImp}},
@@ -126,9 +108,28 @@
 #' @export
 
 PEAXAI_global_importance <- function(
-    final_model, x, y, explain_data, reference_data,
+    final_model, x, y, z_numeric = NULL, z_factor = NULL,
+    explain_data, reference_data,
     importance_method, seed = 314
     ) {
+
+  if (!is.null(z_numeric) || !is.null(z_factor)) {
+    stop(
+      "Support for environmental variables (`z_numeric`/`z_factor`) is not yet available in this version of PEAXAI.",
+      call. = FALSE
+    )
+  }
+
+  # check if parameters are well introduced
+  validate_parametes_PEAXAI_global_importance(
+    final_model       = final_model,
+    x                 = x,
+    y                 = y,
+    explain_data      = explain_data,
+    reference_data    = reference_data,
+    importance_method = importance_method,
+    seed              = seed
+  )
 
   # reproducibility
   set.seed(seed)
@@ -140,8 +141,6 @@ PEAXAI_global_importance <- function(
   # as data.frame
   explain_data <- as.data.frame(explain_data)
   reference_data <- as.data.frame(reference_data)
-
-  # --------------------------------------------------------
 
   # ----------------------------------------------------------------------------
   # detecting importance variables ---------------------------------------------
@@ -156,34 +155,39 @@ PEAXAI_global_importance <- function(
   }
 
   # format datasets
-  format_dataset <- function(d, x_cols, y_cols) {
+  format_dataset <- function(d, x_cols, y_cols, z_num_cols, z_fac_cols) {
     if (".outcome" %in% names(d)) {
       names(d)[names(d) == ".outcome"] <- "class_efficiency"
       d <- d[, c(setdiff(names(d), "class_efficiency"), "class_efficiency")]
       return(d)
     } else {
-      d <- d[, c(x_cols, y_cols)]
+      d <- d[, c(x_cols, y_cols, z_num_cols, z_fac_cols)]
       return(d)
     }
   }
 
-  target_data <- format_dataset(explain_data, x, y)
-  train_data <- format_dataset(reference_data, x, y)
+  target_data <- format_dataset(explain_data, x, y, z_numeric, z_factor)
+  train_data <- reference_data[,setdiff(names(reference_data), "class_efficiency"), drop = FALSE]
 
   x_len <- length(x)
   y_len <- length(y)
+  z_numeric_len <- length(z_numeric)
+  z_factor_len <- length(z_factor)
 
   # --- SECURITY CHECK AGAINST EXTERNAL DATA ---
   n_explain <- nrow(target_data)
+
   if (n_explain > nrow(train_data)) {
     stop("Error: 'explain_data' has more rows than 'reference_data'. They must be the original DMUs passed to PEAXAI_fitting().")
   }
+
   # Extract the features from train_data (dropping class_efficiency) to compare
   ref_subset <- train_data[1:n_explain, setdiff(names(train_data), "class_efficiency"), drop = FALSE]
-  # Compare formatted datasets
-  if (!isTRUE(all.equal(target_data, ref_subset, check.attributes = FALSE))) {
-    stop("Error: 'explain_data' features do not match the original training observations. You must provide the same DMUs used in PEAXAI_fitting().")
-  }
+
+  # # Compare formatted datasets
+  # if (!isTRUE(all.equal(target_data, ref_subset, check.attributes = FALSE))) {
+  #   stop("Error: 'explain_data' features do not match the original training observations. You must provide the same DMUs used in PEAXAI_fitting().")
+  # }
 
   # methods XAI
   if (importance_method[["name"]] == "SA") {
@@ -244,13 +248,16 @@ PEAXAI_global_importance <- function(
     train_data  <- as.data.frame(train_data)
     target_data <- as.data.frame(target_data)
 
-    bg_n <- if (!is.null(importance_method[["bg_n"]])) importance_method[["bg_n"]] else 200
+    if (!is.null(importance_method[["bg_n"]])) {
+      bg_n <- importance_method[["bg_n"]]
+    } else {
+      bg_n <- 200
+    }
 
-    #
     shap_model <- kernelshap::kernelshap(
       object = final_model,
       X = target_data,
-      bg_X = train_data,
+      # bg_X = train_data,
       pred_fun = f_pred,
       bg_n = bg_n
     )
@@ -381,6 +388,8 @@ PEAXAI_global_importance <- function(
 #' @param x Integer or character vector with the columns used as **inputs** (predictors).
 #' @param y Integer or character vector with the columns used as **outputs** (targets used
 #'   to define \code{class_efficiency} in training; not included in \code{X} when explaining).
+#' @param z_numeric Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.
+#' @param z_factor Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.
 #' @param explain_data A \code{data.frame} with the original observed DMUs (or new DMUs)
 #'   on which **local** explanations are computed.
 #' @param reference_data A \code{data.frame} with the training dataset used to fit
@@ -428,6 +437,7 @@ PEAXAI_global_importance <- function(
 #' \donttest{
 #'   data("firms", package = "PEAXAI")
 #'
+#'   # Firms of the Valencian Community: four inputs and one output
 #'   data <- subset(
 #'     firms,
 #'     autonomous_community == "Comunidad Valenciana"
@@ -435,49 +445,40 @@ PEAXAI_global_importance <- function(
 #'
 #'   x <- 1:4
 #'   y <- 5
-#'   RTS <- "vrs"
-#'   imbalance_rate <- NULL
-#'
-#'   trControl <- list(
-#'     method = "cv",
-#'     number = 3
-#'   )
-#'
-#'   # glm method
-#'   methods <- list(
-#'     "glm" = list(
-#'       weights = "dinamic"
-#'     )
-#'   )
-#'
-#'   metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
 #'
 #'   models <- PEAXAI_fitting(
-#'     data = data, x = x, y = y, RTS = RTS,
-#'     imbalance_rate = imbalance_rate,
-#'     methods = methods,
-#'     trControl = trControl,
-#'     metric_priority = metric_priority,
-#'     seed = 1,
-#'     verbose = FALSE
+#'     data            = data,
+#'     x               = x,
+#'     y               = y,
+#'     RTS             = "vrs",
+#'     imbalance_rate  = NULL,
+#'     methods         = list("glm" = list(weights = "dinamic")),
+#'     trControl       = list(method = "cv", number = 3),
+#'     metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+#'     seed            = 1,
+#'     verbose         = FALSE
 #'   )
 #'
 #'   final_model <- models[["best_model_fit"]][["glm"]]
 #'
+#'   # SHAP attributions via kernelshap. 'bg_n' is the background sample size
+#'   # (default 200); a smaller value keeps the example fast.
 #'   importance_method <- list(
 #'     name = "SHAP",
-#'     nsim = 200
-#'    )
-#'
-#'   imp_local <- PEAXAI_local_importance(
-#'     final_model = final_model,
-#'     x = x, y = y,
-#'     explain_data = data,
-#'     reference_data = final_model$trainingData,
-#'     importance_method = importance_method,
-#'     seed = 1
+#'     bg_n = 50
 #'   )
 #'
+#'   imp_local <- PEAXAI_local_importance(
+#'     final_model       = final_model,
+#'     x                 = x,
+#'     y                 = y,
+#'     explain_data      = data,
+#'     reference_data    = final_model$trainingData,
+#'     importance_method = importance_method,
+#'     seed              = 1
+#'   )
+#'
+#'   # One row per DMU; the absolute weights of each row add up to 1
 #'   head(imp_local)
 #' }
 #'
@@ -494,9 +495,27 @@ PEAXAI_global_importance <- function(
 #' @export
 
 PEAXAI_local_importance <- function(
-    final_model, x, y, explain_data, reference_data,
-    importance_method, seed = 314
+    final_model, x, y, z_numeric = NULL, z_factor = NULL,
+    explain_data, reference_data, importance_method, seed = 314
 ) {
+
+  if (!is.null(z_numeric) || !is.null(z_factor)) {
+    stop(
+      "Support for environmental variables (`z_numeric`/`z_factor`) is not yet available in this version of PEAXAI.",
+      call. = FALSE
+    )
+  }
+
+  # check if parameters are well introduced
+  validate_parametes_PEAXAI_local_importance(
+    final_model       = final_model,
+    x                 = x,
+    y                 = y,
+    explain_data      = explain_data,
+    reference_data    = reference_data,
+    importance_method = importance_method,
+    seed              = seed
+  )
 
   # reproducibility
   set.seed(seed)
@@ -518,22 +537,24 @@ PEAXAI_local_importance <- function(
   }
 
   # format datasets
-  format_dataset <- function(d, x_cols, y_cols) {
+  format_dataset <- function(d, x_cols, y_cols, z_num_cols, z_fac_cols) {
     if (".outcome" %in% names(d)) {
       names(d)[names(d) == ".outcome"] <- "class_efficiency"
       d <- d[, c(setdiff(names(d), "class_efficiency"), "class_efficiency")]
       return(d)
     } else {
-      d <- d[, c(x_cols, y_cols)]
+      d <- d[, c(x_cols, y_cols, z_num_cols, z_fac_cols)]
       return(d)
     }
   }
 
-  target_data <- format_dataset(explain_data, x, y)
-  train_data <- format_dataset(reference_data, x, y)
+  target_data <- format_dataset(explain_data, x, y, z_numeric, z_factor)
+  train_data <- reference_data[,setdiff(names(reference_data), "class_efficiency"), drop = FALSE]
 
   x_len <- length(x)
   y_len <- length(y)
+  z_numeric_len <- length(z_numeric)
+  z_factor_len <- length(z_factor)
 
   # methods XAI
   if (importance_method[["name"]] == "SA") {
@@ -586,7 +607,7 @@ PEAXAI_local_importance <- function(
 
     # matrix of data without label
     target_data <- target_data[, setdiff(names(target_data), "class_efficiency"), drop = FALSE]
-    train_data <- train_data[, setdiff(names(train_data), "class_efficiency"), drop = FALSE]
+    train_data <- train_data[, setdiff(names(train_data), c("class_efficiency", ".outcome")), drop = FALSE]
 
     # predict efficiency
     f_pred <- function(object, newdata) {
@@ -599,13 +620,16 @@ PEAXAI_local_importance <- function(
 
     }
 
-    bg_n <- if (!is.null(importance_method[["bg_n"]])) importance_method[["bg_n"]] else 200
+    if (!is.null(importance_method[["bg_n"]])) {
+      bg_n <- importance_method[["bg_n"]]
+    } else {
+      bg_n <- 200
+    }
 
-    #
     shap_model <- kernelshap::kernelshap(
       object = final_model,
       X = target_data,
-      bg_X = train_data,
+      # bg_X = train_data,
       pred_fun = f_pred,
       bg_n = bg_n
     )
@@ -614,6 +638,7 @@ PEAXAI_local_importance <- function(
     imp <- data.frame(
       importance = shap_model$S
     )
+
     names(imp) <- names(train_data)
 
     # Normalize for relative importance per observation

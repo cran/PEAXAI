@@ -8,21 +8,19 @@
 #' @param RTS Text string or number defining the underlying DEA technology /
 #'   returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 #'   \describe{
-#'     \item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 #'     \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-#'     \item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 #'     \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-#'     \item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-#'     \item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 #'   }
 #' @param balance_data Indicate level of efficient units to achive and the number of efficient and not efficient units.
 #' @param seed  Integer. Seed for reproducibility.
+#' @param verbose Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).
 #'
 #' @return It returns a \code{data.frame} with the newly created set of DMUs incorporated.
-#' @export
+#'
+#' @keywords internal
 
 SMOTE_data <- function (
-    data, x, y, RTS = "vrs", balance_data, seed
+    data, x, y, RTS = "vrs", balance_data, seed, verbose = TRUE
 ) {
 
   # first, determine the efficient facets
@@ -30,7 +28,8 @@ SMOTE_data <- function (
     data = data,
     x = x,
     y = y,
-    RTS = RTS
+    RTS = RTS,
+    verbose = verbose
   )
 
   # second, populate the efficient facets

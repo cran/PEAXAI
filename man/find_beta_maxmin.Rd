@@ -8,8 +8,9 @@ find_beta_maxmin(
   data,
   x,
   y,
+  z_numeric = NULL,
+  z_factor = NULL,
   final_model,
-  calibration_model,
   efficiency_thresholds,
   n_expand,
   vector_gx,
@@ -27,8 +28,6 @@ find_beta_maxmin(
 
 \item{final_model}{A fitted \pkg{caret} model of class \code{"train"} that supports
 \code{predict(type = "prob")} and returns a probability column for the efficient class.}
-
-\item{calibration_model}{A model to calibrate.}
 
 \item{efficiency_thresholds}{A numeric vector of probability levels in (0,1).
 Its minimum and maximum values delimit the target interval used to bracket \eqn{\beta}.}
@@ -69,3 +68,4 @@ The resulting interval \eqn{[\beta_{\min}, \beta_{\max}]} is then used by
 \code{\link{PEAXAI_counterfactuals}} (efficiency projections based on \eqn{\beta});
 \code{\link[caret]{train}} (model training with class probabilities).
 }
+\keyword{internal}

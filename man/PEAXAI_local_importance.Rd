@@ -8,6 +8,8 @@ PEAXAI_local_importance(
   final_model,
   x,
   y,
+  z_numeric = NULL,
+  z_factor = NULL,
   explain_data,
   reference_data,
   importance_method,
@@ -23,6 +25,10 @@ are obtained with \code{type = "response"}; otherwise the function expects
 
 \item{y}{Integer or character vector with the columns used as \strong{outputs} (targets used
 to define \code{class_efficiency} in training; not included in \code{X} when explaining).}
+
+\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
 
 \item{explain_data}{A \code{data.frame} with the original observed DMUs (or new DMUs)
 on which \strong{local} explanations are computed.}
@@ -87,6 +93,7 @@ the DMU (using the chosen SA method/measure) and normalizes sensitivities per DM
 \donttest{
   data("firms", package = "PEAXAI")
 
+  # Firms of the Valencian Community: four inputs and one output
   data <- subset(
     firms,
     autonomous_community == "Comunidad Valenciana"
@@ -94,49 +101,40 @@ the DMU (using the chosen SA method/measure) and normalizes sensitivities per DM
 
   x <- 1:4
   y <- 5
-  RTS <- "vrs"
-  imbalance_rate <- NULL
-
-  trControl <- list(
-    method = "cv",
-    number = 3
-  )
-
-  # glm method
-  methods <- list(
-    "glm" = list(
-      weights = "dinamic"
-    )
-  )
-
-  metric_priority <- c("Balanced_Accuracy", "ROC_AUC")
 
   models <- PEAXAI_fitting(
-    data = data, x = x, y = y, RTS = RTS,
-    imbalance_rate = imbalance_rate,
-    methods = methods,
-    trControl = trControl,
-    metric_priority = metric_priority,
-    seed = 1,
-    verbose = FALSE
+    data            = data,
+    x               = x,
+    y               = y,
+    RTS             = "vrs",
+    imbalance_rate  = NULL,
+    methods         = list("glm" = list(weights = "dinamic")),
+    trControl       = list(method = "cv", number = 3),
+    metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+    seed            = 1,
+    verbose         = FALSE
   )
 
   final_model <- models[["best_model_fit"]][["glm"]]
 
+  # SHAP attributions via kernelshap. 'bg_n' is the background sample size
+  # (default 200); a smaller value keeps the example fast.
   importance_method <- list(
     name = "SHAP",
-    nsim = 200
-   )
-
-  imp_local <- PEAXAI_local_importance(
-    final_model = final_model,
-    x = x, y = y,
-    explain_data = data,
-    reference_data = final_model$trainingData,
-    importance_method = importance_method,
-    seed = 1
+    bg_n = 50
   )
 
+  imp_local <- PEAXAI_local_importance(
+    final_model       = final_model,
+    x                 = x,
+    y                 = y,
+    explain_data      = data,
+    reference_data    = final_model$trainingData,
+    importance_method = importance_method,
+    seed              = 1
+  )
+
+  # One row per DMU; the absolute weights of each row add up to 1
   head(imp_local)
 }
 

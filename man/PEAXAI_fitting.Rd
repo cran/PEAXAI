@@ -8,20 +8,19 @@ PEAXAI_fitting(
   data,
   x,
   y,
-  z_numeric = NULL,
-  z_factor = NULL,
   RTS = "vrs",
-  B = NULL,
-  alpha = FALSE,
-  m = NULL,
   imbalance_rate = NULL,
   trControl,
   methods,
   metric_priority = "Balanced_Accuracy",
-  calibration_method = NULL,
   hold_out = NULL,
   seed = 314,
-  verbose = TRUE
+  verbose = TRUE,
+  z_numeric = NULL,
+  z_factor = NULL,
+  B = NULL,
+  alpha = NULL,
+  m = NULL
 )
 }
 \arguments{
@@ -31,26 +30,12 @@ PEAXAI_fitting(
 
 \item{y}{Integer vector with column indices of output variables in \code{data}.}
 
-\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
-
-\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
-
 \item{RTS}{Text string or number defining the underlying DEA technology /
 returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \describe{
-\item{\code{0} / \code{"fdh"}}{Free disposability hull, no convexity assumption.}
 \item{\code{1} / \code{"vrs"}}{Variable returns to scale, convexity and free disposability.}
-\item{\code{2} / \code{"drs"}}{Decreasing returns to scale, convexity, down-scaling and free disposability.}
 \item{\code{3} / \code{"crs"}}{Constant returns to scale, convexity and free disposability.}
-\item{\code{4} / \code{"irs"}}{Increasing returns to scale (up-scaling, not down-scaling), convexity and free disposability.}
-\item{\code{5} / \code{"add"}}{Additivity (scaling up and down, but only with integers), and free disposability.}
 }}
-
-\item{B}{number of bootstrap replicates in Conditional DEA.}
-
-\item{alpha}{This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.}
-
-\item{m}{number of units to be included in the reference set.}
 
 \item{imbalance_rate}{Optional target(s) for class balance via SMOTE. If \code{NULL},
 no synthetic balancing is performed.}
@@ -61,21 +46,7 @@ and \code{"none"}. See \pkg{caret} documentation.}
 
 \item{methods}{A \code{list} of selected machine learning models and their hyperparameters.}
 
-\item{metric_priority}{A \code{string} specifying the summary metric for classification to select the optimal model. Default includes \code{"Balanced_Accuracy"} due to (normally) unbalanced data.}
-
-\item{calibration_method}{Character string specifying the probability calibration
-method applied to the fitted classifier. Supported options are:
-\describe{
-\item{\code{"none"}}{No probability calibration is applied; raw classifier
-probabilities are returned.}
-\item{\code{"platt"}}{Platt scaling, which fits a logistic regression model
-mapping raw scores to calibrated probabilities. Suitable for relatively
-small samples and parametric probability adjustment.}
-\item{\code{"isotonic"}}{Isotonic regression, a non-parametric monotonic
-calibration method that adapts flexibly to the empirical score-probability
-relationship. Recommended for larger samples where sufficient calibration
-data are available.}
-}
+\item{metric_priority}{A \code{string} specifying the summary metric for classification to select the optimal model. Default includes \code{"Balanced_Accuracy"} due to (normally) unbalanced data.
 Calibration is performed using validation data whenever resampling is enabled.}
 
 \item{hold_out}{Numeric proportion in (0,1) for validation split (default \code{NULL}).
@@ -84,6 +55,16 @@ If \code{NULL}, training and validation use the same data.}
 \item{seed}{Integer. Seed for reproducibility.}
 
 \item{verbose}{Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).}
+
+\item{z_numeric}{Integer vector with column indices of numeric environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{z_factor}{Integer vector with column indices of factor environment variables in \code{data}. By default is \code{NULL}.}
+
+\item{B}{number of bootstrap replicates in Conditional DEA.}
+
+\item{alpha}{This allow to choose the size of the Confidence Intervals computed. By defaulta alpha = FALSE. In this case no confidence interval are computed.}
+
+\item{m}{number of units to be included in the reference set.}
 }
 \value{
 A \code{"PEAXAI"} (list) with the best technique, best fitted models and their performance and the results by fold.
@@ -101,35 +82,44 @@ balancing level.
 \donttest{
   data("firms", package = "PEAXAI")
 
+  # Firms of the Valencian Community: 97 DMUs described by four inputs
+  # (columns 1 to 4) and one output (column 5).
   data <- subset(
     firms,
     autonomous_community == "Comunidad Valenciana"
   )
 
+  x <- 1:4
+  y <- 5
+
+  # Resampling scheme: stratified 3-fold cross-validation
   trControl <- list(
     method = "cv",
     number = 3
   )
 
-  # glm method
+  # Candidate algorithm: logistic regression with dynamic class weights
   methods <- list(
     "glm" = list(
-        weights = "dinamic"
-     )
+      weights = "dinamic"
+    )
   )
 
   models <- PEAXAI_fitting(
-    data = data,
-    x = c(1:4),
-    y = 5,
-    RTS = "vrs",
-    imbalance_rate = NULL,
-    methods = methods,
-    trControl = trControl,
+    data            = data,
+    x               = x,
+    y               = y,
+    RTS             = "vrs",
+    imbalance_rate  = NULL,
+    methods         = methods,
+    trControl       = trControl,
     metric_priority = c("Balanced_Accuracy", "F1", "ROC_AUC"),
-    seed = 1,
-    verbose = FALSE
+    seed            = 1,
+    verbose         = FALSE
   )
+
+  # Best fitted model for the 'glm' technique
+  final_model <- models[["best_model_fit"]][["glm"]]
 }
 
 }

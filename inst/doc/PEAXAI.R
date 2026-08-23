@@ -18,7 +18,11 @@ library(PEAXAI)
 data("firms", package = "PEAXAI")
 
 ## -----------------------------------------------------------------------------
-data <- subset(firms, autonomous_community == "Comunidad Valenciana")[, -ncol(firms)]
+data <- subset(
+  firms,
+  autonomous_community == "Comunidad Valenciana",
+  select = -autonomous_community
+)
 rm(firms)
 
 ## -----------------------------------------------------------------------------
@@ -42,15 +46,12 @@ methods <- list(
       size = c(1, 5, 10, 20),
       decay = 10^seq(-5, -1, by = 1)
     ),
-    maxit = 100,
     preProcess = c("center", "scale"),
-    # # --- arguments nnet ---
-    entropy = TRUE,
+    # --- arguments passed on to nnet ---
     skip = TRUE,
-    maxit = 1000,
+    maxit = 100,
     MaxNWts = 100000,
-    trace = FALSE,
-    weights = NULL
+    trace = FALSE
   )
 )
 
@@ -92,8 +93,7 @@ models$performance_train
 
 ## -----------------------------------------------------------------------------
 importance_method <- list(
-    name = "SHAP",
-    nsim = 200
+    name = "SHAP"
 )
 
 ## -----------------------------------------------------------------------------

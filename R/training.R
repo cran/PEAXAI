@@ -8,7 +8,6 @@
 #' @param trControl A \code{list} of selected machine learning learning.
 #' @param metric_priority A \code{string} specifying the summary metric for classification to select the optimal model. Default includes \code{"Balanced_Accuracy"} due to (normally) unbalanced data.
 #' @param seed  Integer. Seed for reproducibility.
-
 #'
 #' @importFrom caret train trainControl
 #' @importFrom pROC roc
@@ -42,7 +41,6 @@ train_PEAXAI <- function (
     # predictions
     y_hat <- data$pred
     y_hat <- factor(y_hat, levels = levls)
-    if(levels(y_hat) != c("efficient", "not_efficient")) browser()
     y_hat_prob <- data$efficient
 
     # reference

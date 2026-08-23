@@ -23,16 +23,17 @@
 #' @param balance_data Indicate level of efficient units to achive and the number of efficient and not efficient units.
 #' @param bandwidth the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. It is typically obtained using \code{\link[np]{npudensbw}} and supports mixed data types, including continuous variables and discrete unordered or ordered factors. Bandwidths can be selected using normal reference rules, likelihood cross-validation, or least-squares cross-validation following Li and Racine (2003). If \code{NULL}, the bandwidth is estimated internally.
 #' @param seed  Integer. Seed for reproducibility.
-#'
+#' @param verbose Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).
 #'
 #' @importFrom dplyr %>% semi_join
 #'
 #' @return It returns a \code{data.frame} with the newly created set of DMUs incorporated.
-#' @export
+#'
+#' @keywords internal
 
 SMOTE_Z_data <- function (
     data, x, y, z_numeric, z_factor, balance_data, RTS = "vrs", B, m, alpha,
-    bandwidth = NULL, seed
+    bandwidth = NULL, seed, verbose = TRUE
 ) {
 
   n <- nrow(data)

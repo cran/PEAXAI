@@ -16,7 +16,8 @@ SMOTE_Z_data(
   m,
   alpha,
   bandwidth = NULL,
-  seed
+  seed,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -52,6 +53,8 @@ returns-to-scale assumption (default: \code{"vrs"}). Accepted values:
 \item{bandwidth}{the bandwidth parameters for the unconditional kernel density estimator used in the conditional DEA framework. It is typically obtained using \code{\link[np]{npudensbw}} and supports mixed data types, including continuous variables and discrete unordered or ordered factors. Bandwidths can be selected using normal reference rules, likelihood cross-validation, or least-squares cross-validation following Li and Racine (2003). If \code{NULL}, the bandwidth is estimated internally.}
 
 \item{seed}{Integer. Seed for reproducibility.}
+
+\item{verbose}{Logical; if \code{TRUE}, prints progress messages (default \code{FALSE}).}
 }
 \value{
 It returns a \code{data.frame} with the newly created set of DMUs incorporated.
@@ -59,3 +62,4 @@ It returns a \code{data.frame} with the newly created set of DMUs incorporated.
 \description{
 This function creates new DMUs to address data imbalances. If the majority class is efficient, it generates new inefficient DMUs by worsering the observed units. Conversely, if the majority class is inefficient, it projects inefficient DMUs to the frontier. Finally, a random selection if performed to keep a proportion of 0.65 for the majority class and 0.35 for the minority class.
 }
+\keyword{internal}

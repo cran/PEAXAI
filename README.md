@@ -167,8 +167,6 @@ final_model <- models[["best_model_fit"]][["nnet"]]
 # Estimate efficiency probabilities
 probabilities <- PEAXAI_predict(
   data = data,
-  x = x,
-  y = y,
   final_model = final_model
 )
 

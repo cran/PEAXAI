@@ -4,25 +4,17 @@
 \alias{PEAXAI_predict}
 \title{Predict Probability of Efficiency Using a Fitted Model}
 \usage{
-PEAXAI_predict(data, x, y, final_model, calibration_model = NULL)
+PEAXAI_predict(data, final_model)
 }
 \arguments{
-\item{data}{A \code{data.frame} or \code{matrix} containing the variables used
-for prediction.}
-
-\item{x}{Integer vector indicating the column indices of input variables in
-\code{data}.}
-
-\item{y}{Integer vector indicating the column indices of output variables in
-\code{data}.}
+\item{data}{A \code{data.frame} or \code{matrix} with the DMUs to be scored. It may
+carry any number of additional columns: only the variables \code{final_model} was
+trained on are kept, in the order the model expects. Those variables are matched by
+their \strong{exact} name, so a variable \pkg{caret} renamed when the model was
+trained (\code{"Total assets"} becomes \code{"Total.assets"}) must already carry the
+sanitised name in \code{data}; otherwise it is reported as missing.}
 
 \item{final_model}{A fitted \pkg{caret} model provided by PEAXAI_fitting().}
-
-\item{calibration_model}{Optional calibration object returned by \code{PEAXAI_fitting()}.
-If \code{NULL}, raw probabilities are returned. If \code{calibration_model$method == "glm.fit"},
-Platt scaling is applied by predicting \code{type = "response"} from a logistic regression
-using the raw score \code{s}. Otherwise, an isotonic calibration function is retrieved via
-\code{calibration_model[[final_model$method]]} and applied to the raw probabilities.}
 }
 \value{
 A numeric vector of predicted probabilities (raw or calibrated), one per
@@ -34,4 +26,42 @@ Predicts probabilities for new decision-making units (DMUs) using a fitted
 the raw classifier probabilities are post-processed to obtain calibrated
 probability estimates (e.g., Platt scaling via logistic regression or
 isotonic calibration via a monotone mapping).
+}
+\examples{
+\donttest{
+  data("firms", package = "PEAXAI")
+
+  # Firms of the Valencian Community: four inputs and one output
+  data <- subset(
+    firms,
+    autonomous_community == "Comunidad Valenciana"
+  )
+
+  x <- 1:4
+  y <- 5
+
+  models <- PEAXAI_fitting(
+    data            = data,
+    x               = x,
+    y               = y,
+    RTS             = "vrs",
+    imbalance_rate  = NULL,
+    methods         = list("glm" = list(weights = "dinamic")),
+    trControl       = list(method = "cv", number = 3),
+    metric_priority = c("Balanced_Accuracy", "ROC_AUC"),
+    seed            = 1,
+    verbose         = FALSE
+  )
+
+  final_model <- models[["best_model_fit"]][["glm"]]
+
+  # 'data' must contain every variable the model was trained on
+  probabilities <- PEAXAI_predict(
+    data        = data[, c(x, y)],
+    final_model = final_model
+  )
+
+  head(probabilities)
+}
+
 }
